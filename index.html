@@ -112,6 +112,15 @@
   }
   .notes-box:focus { outline: none; border-color: var(--amber); }
   .notes-saved { font-size: 11px; color: #a39a89; margin-top: 3px; height: 14px; }
+  .photo-strip { display: flex; gap: 6px; overflow-x: auto; margin-top: 6px; padding-bottom: 4px; }
+  .photo-strip img { height: 90px; width: 120px; object-fit: cover; border-radius: 8px; flex: none; background: #eee; }
+  .links-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+  .link-chip {
+    display: inline-flex; align-items: center; gap: 5px; font-size: 12.5px; font-weight: 600;
+    background: #eee5f4; color: var(--purple-dark); padding: 6px 11px; border-radius: 999px;
+    text-decoration: none;
+  }
+  .link-chip:hover { background: #e3d6ef; }
 
   .route-list { list-style: none; margin: 0; padding: 0; font-size: 13px; }
   .route-list li {
@@ -255,13 +264,28 @@
       </div>
 
       <div class="card">
-        <h3>🚐 Camper van — "Eva", 4eva Young Camper Hire</h3>
+        <h3 class="expand-toggle" id="camperToggle" style="cursor:pointer;">🚐 Camper van — "Eva", 4eva Young Camper Hire <span style="font-size:11px;color:var(--purple);font-weight:600;">(click for full specs &amp; photos ▾)</span></h3>
         <div class="status-line"><span class="status-dot good"></span> Hire fee paid in full — £1,690.00</div>
         <p class="fact"><b>Dates:</b> 13–22 July (9 nights), 2 named drivers (Ashur Aziz + Faith Marshall), unlimited UK mileage.</p>
         <p class="fact"><b>Collection:</b> Hulland Ward, Ashbourne, Derbyshire — exact postcode not yet published; working assumption only.</p>
         <p class="fact"><b>Contact:</b> Paul Young — <a class="contact" href="tel:07970350561">07970 350561</a> · <a class="contact" href="mailto:04evayoungcamperhire@gmail.com">04evayoungcamperhire@gmail.com</a></p>
         <div class="warn-box">⚠️ £1,000 refundable damages deposit is SEPARATE from the £1,690 paid and doesn't look arranged yet. Due <b>Mon 6 Jul</b> if paying by bank transfer, or handled as a card pre-authorisation on collection instead.</div>
         <div class="warn-box">⚠️ Collection-day email with exact address expected ~2 weeks before hire (around 29 Jun) — chase Paul if not received.</div>
+        <div id="camperDetail" style="display:none;margin-top:10px;border-top:1px solid var(--line);padding-top:10px;">
+          <p class="fact"><b>Confirmed spelling:</b> "Eva" (with an 'a') — checked directly against the official van page.</p>
+          <p class="fact"><b>Vehicle:</b> Chausson 720 First Line, 5-berth, automatic gearbox</p>
+          <p class="fact"><b>Layout:</b> 2 rear bunk + 2× double beds</p>
+          <p class="fact"><b>Features:</b> Apple CarPlay, reverse camera, solar panels, Truma Combi diesel heating, fridge freezer, oven &amp; hobs, hot/cold shower &amp; toilet, large wardrobe/garage space, TV &amp; USB ports</p>
+          <div class="photo-strip">
+            <img src="https://4evayoungcamperhireltd.co.uk/wp-content/uploads/2026/02/WhatsApp-Image-2026-02-10-at-11.51.06.jpeg" loading="lazy" alt="Eva campervan">
+            <img src="https://4evayoungcamperhireltd.co.uk/wp-content/uploads/2026/02/WhatsApp-Image-2026-02-10-at-11.51.08-3.jpeg" loading="lazy" alt="Eva campervan">
+            <img src="https://4evayoungcamperhireltd.co.uk/wp-content/uploads/2026/02/WhatsApp-Image-2026-02-10-at-11.51.09-1.jpeg" loading="lazy" alt="Eva campervan">
+            <img src="https://4evayoungcamperhireltd.co.uk/wp-content/uploads/2026/02/WhatsApp-Image-2026-02-10-at-11.51.09.jpeg" loading="lazy" alt="Eva campervan">
+          </div>
+          <div class="links-row">
+            <a class="link-chip" href="https://4evayoungcamperhireltd.co.uk/campervans/eva/" target="_blank" rel="noopener">🔗 Official Eva page</a>
+          </div>
+        </div>
       </div>
 
       <div class="card">
@@ -327,7 +351,7 @@ window.gmapsLoadFailed = function() {
   if (mapEl) mapEl.innerHTML = '<div style="padding:40px;text-align:center;color:#8f2c2c;font-size:13px;">Google Maps failed to load — check the API key, billing, and enabled APIs in Google Cloud Console.</div>';
 };
 </script>
-<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD0CJXCESDXFvIwCXNhUORBBJJrQ88MgwY&libraries=geometry&loading=async&callback=initApp&onerror=gmapsLoadFailed" async defer></script>
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD0CJXCESDXFvIwCXNhUORBBJJrQ88MgwY&libraries=geometry,places&loading=async&callback=initApp&onerror=gmapsLoadFailed" async defer></script>
 <script>
 /* ---------- DATA ---------- */
 
@@ -349,8 +373,14 @@ const LOCATIONS = [
     id: "hulland-ward", name: "Hulland Ward (camper collection)", category: "booking",
     lat: 53.0027, lon: -1.6924,
     address: "Ashbourne, Derbyshire — exact postcode not yet published",
+    website: "https://4evayoungcamperhireltd.co.uk/campervans/eva/",
+    manualPhotos: [
+      "https://4evayoungcamperhireltd.co.uk/wp-content/uploads/2026/02/WhatsApp-Image-2026-02-10-at-11.51.06.jpeg",
+      "https://4evayoungcamperhireltd.co.uk/wp-content/uploads/2026/02/WhatsApp-Image-2026-02-10-at-11.51.08-3.jpeg",
+      "https://4evayoungcamperhireltd.co.uk/wp-content/uploads/2026/02/WhatsApp-Image-2026-02-10-at-11.51.09-1.jpeg"
+    ],
     facts: [
-      "Collect & return camper van \"Eva\" here (4eva Young Camper Hire)",
+      "Collect & return camper van \"Eva\" here (4eva Young Camper Hire) — confirmed spelled with an 'a' on the official site",
       "Own car left here for the duration",
       "Gateway to the Peak District — zero-detour base for both free camping windows"
     ],
@@ -371,6 +401,7 @@ const LOCATIONS = [
     id: "calder-farm", name: "Calder Farm, Clitheroe", category: "booking",
     lat: 53.9290, lon: -2.3700,
     address: "Settle Road, Clitheroe, Bolton-by-Bowland, BB7 4NT",
+    website: "http://www.calderfarm.co.uk/",
     facts: ["Check in Mon 20 Jul, staying 20th–21st", "~3 miles / 10 min from Beat-Herder", "01200 447725 · calderfarm.co.uk"],
     good: ["Very short drive from the festival — easy wind-down after 4 days"],
     bad: ["Cabin number/name not yet confirmed", "Exact checkout time not published — call to confirm"],
@@ -388,6 +419,7 @@ const LOCATIONS = [
   {
     id: "dalesbridge", name: "Dalesbridge", category: "frontrunner",
     lat: 54.0880, lon: -2.3010, address: "Austwick, Settle, LA2 8AT",
+    website: "https://www.dalesbridge.co.uk/",
     fromHW: "108mi / 2h29", toBH: "19.5mi / 30min", rating: "Best photos/character of anything checked",
     walk: "Game Cock Inn, Austwick — 10 min walk. Ingleton Waterfalls Trail 15 min drive.",
     good: ["Best-looking, most characterful campsite found — stone farmhouse, riverside meadow", "On-site bar + wood-fired pizza nights", "Short 30-min hop onward to the festival", "Walkable village pub"],
@@ -577,7 +609,7 @@ const MAP_STYLE = [
 
 const MAP_LOCATIONS = LOCATIONS.filter(l => l.category !== "ruledout");
 
-let map, geocoder, directionsService, directionsRenderer, lockedRouteRenderer;
+let map, geocoder, directionsService, directionsRenderer, lockedRouteRenderer, placesService;
 const markerById = {};
 const allLatLngs = [];
 let geocodedCount = 0;
@@ -607,6 +639,7 @@ function initApp() {
       icons: [{ icon: { path: "M 0,-1 0,1", strokeOpacity: 1, scale: 3, strokeColor: "#2b6cb0" }, offset: "0", repeat: "12px" }]
     }
   });
+  placesService = new google.maps.places.PlacesService(map);
 
   MAP_LOCATIONS.forEach(loc => geocodeAndPlace(loc));
 
@@ -629,6 +662,30 @@ function geocodeAndPlace(loc) {
     geocodedCount++;
     if (geocodedCount === MAP_LOCATIONS.length) fitAllBounds();
     maybeDrawLockedRoute();
+    resolvePlaceExtras(loc, position);
+  });
+}
+
+/* Pull real photos + the venue's official website (when Google has one) via Places — always falls back to a Google Maps link, never a guessed URL */
+function resolvePlaceExtras(loc, position) {
+  placesService.findPlaceFromQuery({
+    query: `${loc.name}, ${loc.address}`,
+    fields: ["place_id"],
+    locationBias: new google.maps.Circle({ center: position, radius: 3000 })
+  }, (results, status) => {
+    if (status !== "OK" || !results || !results.length) return;
+    placesService.getDetails({
+      placeId: results[0].place_id,
+      fields: ["photos", "website", "url"]
+    }, (place, detailStatus) => {
+      if (detailStatus !== "OK" || !place) return;
+      if (place.photos && place.photos.length) {
+        loc.placePhotos = place.photos.slice(0, 4).map(p => p.getUrl({ maxWidth: 400, maxHeight: 300 }));
+      }
+      if (place.website) loc.placeWebsite = place.website;
+      if (place.url) loc.placeMapsUrl = place.url;
+      if (currentDetailId === loc.id) showDetail(loc);
+    });
   });
 }
 
@@ -690,12 +747,27 @@ function getNotesStore() {
   try { return JSON.parse(safeStorageGet("beatherder-notes") || "{}"); } catch (e) { return {}; }
 }
 
+let currentDetailId = null;
+
 function showDetail(loc) {
+  currentDetailId = loc.id;
   const s = CATEGORY_STYLE[loc.category];
   const card = document.getElementById("detailCard");
   let html = `<span class="badge" style="background:${s.color}22;color:${s.color}">${s.label}</span>`;
   html += `<h3 style="margin-top:0;">${loc.name}</h3>`;
   html += `<div style="font-size:12.5px;color:#8a8378;margin-bottom:8px;">${loc.address}</div>`;
+
+  const photos = loc.manualPhotos || loc.placePhotos;
+  if (photos && photos.length) {
+    html += `<div class="photo-strip">${photos.map(url => `<img src="${url}" loading="lazy" alt="${loc.name}">`).join("")}</div>`;
+  }
+
+  const website = loc.website || loc.placeWebsite;
+  const mapsUrl = loc.placeMapsUrl || (loc.resolvedLatLng ? `https://www.google.com/maps/search/?api=1&query=${loc.resolvedLatLng.lat()},${loc.resolvedLatLng.lng()}` : null);
+  html += `<div class="links-row">`;
+  if (website) html += `<a class="link-chip" href="${website}" target="_blank" rel="noopener">🔗 Website</a>`;
+  if (mapsUrl) html += `<a class="link-chip" href="${mapsUrl}" target="_blank" rel="noopener">📍 Google Maps</a>`;
+  html += `</div>`;
 
   if (loc.fromHW) html += `<div class="stat-row"><span class="stat-label">From Hulland Ward</span><span class="stat-value">${loc.fromHW}</span></div>`;
   if (loc.toBH) html += `<div class="stat-row"><span class="stat-label">On to Beat-Herder</span><span class="stat-value">${loc.toBH}</span></div>`;
@@ -750,6 +822,7 @@ function wireRouteControls() {
     const btn = document.getElementById("routeToggle");
     const noteEl = document.getElementById("modeNote");
     if (routeMode) {
+      currentDetailId = null;
       btn.textContent = "✅ Planning… click pins to add stops";
       btn.classList.add("on");
       noteEl.textContent = "Route mode is ON — click pins in the order you'd visit them. Driving time adds up automatically below.";
@@ -858,6 +931,16 @@ try {
 } catch (e) { console.error("Campsites table failed:", e); }
 
 /* ---------- TABS (wired early, before anything riskier below can break it) ---------- */
+
+try {
+  const camperToggle = document.getElementById("camperToggle");
+  const camperDetail = document.getElementById("camperDetail");
+  camperToggle.addEventListener("click", () => {
+    const showing = camperDetail.style.display !== "none";
+    camperDetail.style.display = showing ? "none" : "block";
+    camperToggle.querySelector("span").textContent = showing ? "(click for full specs & photos ▾)" : "(click to collapse ▴)";
+  });
+} catch (e) { console.error("Camper toggle failed:", e); }
 
 try {
   document.querySelectorAll("#tabnav button").forEach(btn => {
