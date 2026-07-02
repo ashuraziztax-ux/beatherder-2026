@@ -176,7 +176,7 @@
   .status-tag.considered { background: #fdf1de; color: var(--amber-dark); }
   .status-tag.ruledout { background: #eee; color: var(--grey); text-decoration: line-through; }
   .status-tag.maybe { background: #e3f4f8; color: #197c93; }
-  .row-ruledout td { opacity: 0.55; }
+  .row-ruledout td, .row-hidden td { opacity: 0.55; }
 
   /* TODO */
   .todo-group { margin-bottom: 6px; }
@@ -227,6 +227,7 @@
         <button class="btn amber" id="routeToggle">🧭 Plan a Route</button>
         <button class="btn secondary" id="routeClear">Clear route</button>
         <button class="btn secondary" id="fitAll">Reset view</button>
+        <button class="btn secondary" id="restoreHidden" style="display:none;">↩ Restore hidden pins</button>
       </div>
       <div class="note" id="modeNote">Click any pin for full details — distances, walking info, and the good &amp; bad of each place. Toggle "Plan a Route" to instead click pins in order and build up a driving-time total.</div>
       <div class="note" id="lockedRouteInfo" style="font-weight:600;color:var(--purple-dark);margin-top:6px;">🔒 Calculating the fixed ferry ⇄ camper leg…</div>
@@ -343,7 +344,7 @@
       <h2>Full comparison</h2>
       <div style="overflow-x:auto;">
       <table>
-        <thead><tr><th>Site</th><th>Status</th><th>Your Rating</th><th>From Hulland Ward</th><th>To Beat-Herder</th><th>Researched Rating</th><th>Link</th></tr></thead>
+        <thead><tr><th>Site</th><th>Status</th><th>Your Rating</th><th>From Ferry Terminal</th><th>From Hulland Ward</th><th>To Beat-Herder</th><th>Researched Rating</th><th>Link</th></tr></thead>
         <tbody id="campsiteBody"></tbody>
       </table>
       </div>
@@ -374,7 +375,7 @@ window.gmapsLoadFailed = function() {
 <script>
 /* ---------- VERSION & UPDATE CHECK ---------- */
 /* Bump APP_VERSION and version.json together on every deploy — the banner below is how you know you're not looking at a stale cached copy */
-const APP_VERSION = "2026-07-02.8";
+const APP_VERSION = "2026-07-02.9";
 
 try {
   document.getElementById("versionBadge").textContent = "v" + APP_VERSION;
@@ -650,10 +651,11 @@ const MAP_STYLE = [
 
 const MAP_LOCATIONS = LOCATIONS.filter(l => l.category !== "ruledout");
 
-let map, geocoder, directionsService, directionsRenderer, lockedRouteRenderer, placesService;
+let map, geocoder, directionsService, directionsRenderer, lockedRouteRenderer, placesService, distanceMatrixService;
 const markerById = {};
 const allLatLngs = [];
 let geocodedCount = 0;
+let allGeocodedCount = 0;
 
 function initApp() {
   map = new google.maps.Map(document.getElementById("map"), {
@@ -681,10 +683,13 @@ function initApp() {
     }
   });
   placesService = new google.maps.places.PlacesService(map);
+  distanceMatrixService = new google.maps.DistanceMatrixService();
 
   LOCATIONS.forEach(loc => geocodeAndPlace(loc));
 
   document.getElementById("fitAll").addEventListener("click", fitAllBounds);
+  document.getElementById("restoreHidden").addEventListener("click", restoreAllHidden);
+  updateHiddenButton();
 
   wireRouteControls();
 }
@@ -708,7 +713,40 @@ function geocodeAndPlace(loc) {
       maybeDrawLockedRoute();
     }
     resolvePlaceExtras(loc, position);
+
+    allGeocodedCount++;
+    if (allGeocodedCount === LOCATIONS.length) computeFerryDistances();
   });
+}
+
+/* Distance/time from the Liverpool Ferry Terminal to every other place — same format as the "From Hulland Ward" / "To Beat-Herder" stats, computed live via the Distance Matrix API rather than hand-researched */
+function computeFerryDistances() {
+  const ferry = LOCATIONS.find(l => l.id === "ferry");
+  if (!ferry || !ferry.resolvedLatLng) return;
+  const destLocs = LOCATIONS.filter(l => l.id !== "ferry" && l.resolvedLatLng);
+  const chunkSize = 25;
+
+  for (let i = 0; i < destLocs.length; i += chunkSize) {
+    const chunk = destLocs.slice(i, i + chunkSize);
+    distanceMatrixService.getDistanceMatrix({
+      origins: [ferry.resolvedLatLng],
+      destinations: chunk.map(l => l.resolvedLatLng),
+      travelMode: google.maps.TravelMode.DRIVING,
+      unitSystem: google.maps.UnitSystem.IMPERIAL
+    }, (response, status) => {
+      if (status !== "OK" || !response) return;
+      const elements = response.rows[0].elements;
+      chunk.forEach((loc, idx) => {
+        const el = elements[idx];
+        if (el && el.status === "OK") {
+          loc.fromFerry = `${el.distance.text} / ${el.duration.text}`;
+          const cell = document.getElementById("ferry-" + loc.id);
+          if (cell) cell.textContent = loc.fromFerry;
+          if (currentDetailId === loc.id) showDetail(loc);
+        }
+      });
+    });
+  }
 }
 
 /* Pull real photos + the venue's official website (when Google has one) via Places — always falls back to a Google Maps link, never a guessed URL */
@@ -793,6 +831,7 @@ function placeMarker(loc, position) {
   });
   markerById[loc.id] = marker;
   allLatLngs.push(position);
+  if (getHiddenStore()[loc.id]) marker.setMap(null);
 }
 
 function fitAllBounds() {
@@ -842,6 +881,40 @@ function renderStarWidget(locId) {
   html += `</span>`;
   return html;
 }
+/* ---------- HIDE / RESTORE PINS ---------- */
+
+function getHiddenStore() {
+  try { return JSON.parse(safeStorageGet("beatherder-hidden") || "{}"); } catch (e) { return {}; }
+}
+function updateHiddenButton() {
+  const hidden = getHiddenStore();
+  const count = Object.keys(hidden).length;
+  const btn = document.getElementById("restoreHidden");
+  if (!btn) return;
+  if (count > 0) {
+    btn.style.display = "inline-block";
+    btn.textContent = `↩ Restore ${count} hidden pin${count === 1 ? "" : "s"}`;
+  } else {
+    btn.style.display = "none";
+  }
+}
+function hidePin(id) {
+  const hidden = getHiddenStore();
+  hidden[id] = true;
+  safeStorageSet("beatherder-hidden", JSON.stringify(hidden));
+  if (markerById[id]) markerById[id].setMap(null);
+  updateHiddenButton();
+  renderCampsiteTable();
+  currentDetailId = null;
+  document.getElementById("detailCard").innerHTML = `<div class="detail-empty">Pin removed from the map. Use "Restore hidden pins" above to bring it back.</div>`;
+}
+function restoreAllHidden() {
+  safeStorageSet("beatherder-hidden", "{}");
+  LOCATIONS.forEach(loc => { if (markerById[loc.id]) markerById[loc.id].setMap(map); });
+  updateHiddenButton();
+  renderCampsiteTable();
+}
+
 function openOnMap(id) {
   const loc = LOCATIONS.find(l => l.id === id);
   if (!loc) return;
@@ -863,6 +936,7 @@ function showDetail(loc) {
   html += `<h3 style="margin-top:0;">${loc.name}</h3>`;
   html += `<div style="font-size:12.5px;color:#8a8378;margin-bottom:8px;">${loc.address}</div>`;
   html += `<div class="section-label">⭐ Your rating</div>${renderStarWidget(loc.id)}`;
+  html += `<div style="margin-top:8px;"><button class="btn" style="background:#c23b3b;font-size:11.5px;padding:6px 12px;" onclick="hidePin('${loc.id}')">🗑️ Remove pin from map</button></div>`;
 
   const photos = loc.manualPhotos || loc.placePhotos;
   if (photos && photos.length) {
@@ -876,6 +950,7 @@ function showDetail(loc) {
   if (mapsUrl) html += `<a class="link-chip" href="${mapsUrl}" target="_blank" rel="noopener">📍 Google Maps</a>`;
   html += `</div>`;
 
+  if (loc.fromFerry) html += `<div class="stat-row"><span class="stat-label">From Liverpool Ferry Terminal</span><span class="stat-value">${loc.fromFerry}</span></div>`;
   if (loc.fromHW) html += `<div class="stat-row"><span class="stat-label">From Hulland Ward</span><span class="stat-value">${loc.fromHW}</span></div>`;
   if (loc.toBH) html += `<div class="stat-row"><span class="stat-label">On to Beat-Herder</span><span class="stat-value">${loc.toBH}</span></div>`;
   if (loc.rating) html += `<div class="stat-row"><span class="stat-label">Rating / price</span><span class="stat-value">${loc.rating}</span></div>`;
@@ -1048,10 +1123,14 @@ function renderCampsiteTable() {
     const seenBadge = viewed[loc.id]
       ? `<span class="seen-badge" title="You've looked at this one">✅</span>`
       : `<span class="seen-badge" title="Not looked at yet" style="opacity:.3;">👁</span>`;
+    const hidden = getHiddenStore();
+    if (hidden[loc.id]) tr.classList.add("row-hidden");
+    const hiddenTag = hidden[loc.id] ? `<span class="status-tag" style="background:#eee;color:#999;margin-left:5px;">🚫 hidden from map</span>` : "";
     tr.innerHTML = `
-      <td class="site-cell" onclick="openOnMap('${loc.id}')">${seenBadge}<b class="site-name">${loc.name}</b></td>
+      <td class="site-cell" onclick="openOnMap('${loc.id}')">${seenBadge}<b class="site-name">${loc.name}</b>${hiddenTag}</td>
       <td><span class="status-tag ${loc.category}">${CATEGORY_STYLE[loc.category].label}</span></td>
       <td>${renderStarWidget(loc.id)}</td>
+      <td id="ferry-${loc.id}">${loc.fromFerry || "—"}</td>
       <td>${loc.fromHW || "—"}</td>
       <td>${loc.toBH || "—"}</td>
       <td>${loc.rating || "—"}</td>
