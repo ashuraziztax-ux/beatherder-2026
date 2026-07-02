@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Beat-Herder 2026 — Trip Planner</title>
+<style>
+  :root {
+    --purple: #4c2a6b;
+    --purple-dark: #331d49;
+    --amber: #e8873c;
+    --amber-dark: #c96a1f;
+    --cream: #faf6ef;
+    --card: #ffffff;
+    --green: #1f8a4c;
+    --green-bg: #e8f6ee;
+    --red: #c23b3b;
+    --red-bg: #fbebeb;
+    --grey: #8a8a8a;
+    --ink: #2a2233;
+    --line: #eae4d8;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--cream);
+    color: var(--ink);
+  }
+  header {
+    background: linear-gradient(115deg, var(--purple) 0%, var(--purple-dark) 55%, var(--amber-dark) 130%);
+    color: #fff;
+    padding: 18px 22px 14px;
+  }
+  header h1 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: 0.3px; }
+  header .sub { font-size: 13px; opacity: 0.85; margin-top: 3px; }
+  .header-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
+  .countdown {
+    background: rgba(255,255,255,0.14);
+    border: 1px solid rgba(255,255,255,0.25);
+    border-radius: 999px;
+    padding: 7px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  nav {
+    display: flex; gap: 4px; margin-top: 14px; flex-wrap: wrap;
+  }
+  nav button {
+    background: rgba(255,255,255,0.10);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: #fff;
+    padding: 8px 14px;
+    border-radius: 8px 8px 0 0;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    opacity: 0.75;
+  }
+  nav button.active { background: var(--cream); color: var(--purple-dark); opacity: 1; }
+
+  main { max-width: 1200px; margin: 0 auto; padding: 18px; }
+  .tab { display: none; }
+  .tab.active { display: block; }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 16px 18px;
+    margin-bottom: 16px;
+    box-shadow: 0 1px 3px rgba(40,20,60,0.04);
+  }
+  .card h2 { margin: 0 0 10px; font-size: 16px; color: var(--purple-dark); }
+  .card h3 { margin: 0 0 6px; font-size: 14px; }
+
+  /* MAP TAB */
+  .map-layout { display: flex; gap: 14px; flex-wrap: wrap-reverse; align-items: flex-start; }
+  #map { flex: 1 1 560px; min-width: 300px; height: 560px; border-radius: 14px; border: 1px solid var(--line); }
+  .side-panel { flex: 1 1 300px; min-width: 280px; display: flex; flex-direction: column; gap: 12px; }
+  .route-controls { display: flex; gap: 8px; flex-wrap: wrap; }
+  .btn {
+    border: none; border-radius: 8px; padding: 9px 14px; font-size: 13px; font-weight: 600;
+    cursor: pointer; background: var(--purple); color: #fff;
+  }
+  .btn.secondary { background: #eee5f4; color: var(--purple-dark); }
+  .btn.amber { background: var(--amber); color: #fff; }
+  .btn.on { background: var(--green); }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 10px 16px; font-size: 12px; margin-top: 8px; }
+  .legend-item { display: flex; align-items: center; gap: 6px; }
+  .dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; border: 1px solid rgba(0,0,0,0.15); }
+
+  .detail-empty { color: #999; font-size: 13px; text-align: center; padding: 40px 10px; }
+  .badge {
+    display: inline-block; font-size: 11px; font-weight: 700; padding: 3px 10px;
+    border-radius: 999px; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.4px;
+  }
+  .stat-row { display: flex; justify-content: space-between; font-size: 13px; padding: 5px 0; border-bottom: 1px solid #f2eee5; }
+  .stat-label { color: #8a8378; }
+  .stat-value { font-weight: 600; text-align: right; }
+  .section-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #a39a89; margin: 12px 0 4px; font-weight: 700; }
+  ul.good, ul.bad { margin: 4px 0 0; padding-left: 18px; font-size: 13px; line-height: 1.55; }
+  ul.good li { color: #1a5c34; }
+  ul.bad li { color: #8f2c2c; }
+  .walk-line { font-size: 13px; background: #f6f1e6; border-radius: 8px; padding: 8px 10px; margin-top: 8px; }
+
+  .route-list { list-style: none; margin: 0; padding: 0; font-size: 13px; }
+  .route-list li {
+    display: flex; align-items: center; gap: 8px; padding: 7px 8px; border-radius: 8px; background: #f8f5ee; margin-bottom: 6px;
+  }
+  .route-list .num {
+    width: 20px; height: 20px; border-radius: 50%; background: var(--purple); color: #fff;
+    display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex: none;
+  }
+  .route-list .name { flex: 1; }
+  .route-list .remove { cursor: pointer; color: var(--red); font-weight: 700; font-size: 15px; }
+  .route-total { font-size: 14px; font-weight: 700; color: var(--purple-dark); border-top: 1px dashed var(--line); padding-top: 10px; margin-top: 10px; }
+  .route-total .small { font-weight: 400; font-size: 11.5px; color: #a39a89; display: block; margin-top: 2px; }
+
+  .note {
+    font-size: 12px; color: #97907f; margin-top: 6px;
+  }
+
+  /* ITINERARY */
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: #8a8378; font-size: 11px; text-transform: uppercase; letter-spacing: 0.4px; }
+  tr:hover td { background: #faf7f0; }
+  .day-pill {
+    display: inline-block; background: var(--purple); color: #fff; font-size: 11px; font-weight: 700;
+    border-radius: 6px; padding: 3px 8px; white-space: nowrap;
+  }
+  .day-pill.festival { background: var(--amber); }
+
+  /* BOOKINGS */
+  .booking-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+  .status-line { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; margin-bottom: 10px; }
+  .status-dot { width: 9px; height: 9px; border-radius: 50%; }
+  .status-dot.good { background: var(--green); }
+  .status-dot.warn { background: var(--red); }
+  .fact { font-size: 13px; margin: 4px 0; line-height: 1.5; }
+  .fact b { color: #6b6355; font-weight: 600; }
+  .warn-box { background: var(--red-bg); border: 1px solid #f0c8c8; color: #8f2c2c; border-radius: 8px; padding: 8px 10px; font-size: 12.5px; margin-top: 8px; }
+  a.contact { color: var(--purple); font-weight: 600; text-decoration: none; }
+  a.contact:hover { text-decoration: underline; }
+
+  /* CAMPSITES TABLE */
+  .status-tag { font-size: 10.5px; font-weight: 700; padding: 2px 8px; border-radius: 999px; text-transform: uppercase; }
+  .status-tag.frontrunner { background: var(--green-bg); color: var(--green); }
+  .status-tag.considered { background: #fdf1de; color: var(--amber-dark); }
+  .status-tag.ruledout { background: #eee; color: var(--grey); text-decoration: line-through; }
+  .status-tag.maybe { background: #e3f4f8; color: #197c93; }
+  .row-ruledout td { opacity: 0.55; }
+
+  /* TODO */
+  .todo-group { margin-bottom: 6px; }
+  .todo-item { display: flex; align-items: flex-start; gap: 10px; padding: 8px 4px; border-bottom: 1px solid #f2eee5; font-size: 13.5px; }
+  .todo-item input { margin-top: 3px; width: 16px; height: 16px; flex: none; }
+  .todo-item.done label { text-decoration: line-through; color: #b3ab9c; }
+  .todo-item .urgent { color: var(--red); font-weight: 700; font-size: 11px; margin-left: 6px; }
+
+  footer { text-align: center; font-size: 11.5px; color: #b3ab9c; padding: 24px 10px 40px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-row">
+    <div>
+      <h1>🎪 Beat-Herder 2026</h1>
+      <div class="sub">13–22 July · Isle of Man ⇄ Liverpool ⇄ Peak District/Dales ⇄ Sawley ⇄ Clitheroe ⇄ back</div>
+    </div>
+    <div class="countdown" id="countdown">…</div>
+  </div>
+  <nav id="tabnav">
+    <button data-tab="map" class="active">🗺️ Map & Routes</button>
+    <button data-tab="itinerary">📅 Itinerary</button>
+    <button data-tab="bookings">🎫 Bookings</button>
+    <button data-tab="campsites">🏕️ Campsites</button>
+    <button data-tab="todo">✅ To-Do</button>
+  </nav>
+</header>
+
+<main>
+
+  <!-- MAP TAB -->
+  <div class="tab active" id="tab-map">
+    <div class="card" style="margin-bottom:10px;">
+      <div class="route-controls">
+        <button class="btn amber" id="routeToggle">🧭 Plan a Route</button>
+        <button class="btn secondary" id="routeClear">Clear route</button>
+        <button class="btn secondary" id="fitAll">Reset view</button>
+      </div>
+      <div class="note" id="modeNote">Click any pin for full details — distances, walking info, and the good &amp; bad of each place. Toggle "Plan a Route" to instead click pins in order and build up a driving-time total.</div>
+    </div>
+    <div class="map-layout">
+      <div id="map"></div>
+      <div class="side-panel">
+        <div class="card" id="detailCard">
+          <div class="detail-empty">Click a pin on the map to see everything about that place.</div>
+        </div>
+        <div class="card">
+          <h2>Legend</h2>
+          <div class="legend">
+            <div class="legend-item"><span class="dot" style="background:#2b6cb0"></span> Key booking</div>
+            <div class="legend-item"><span class="dot" style="background:#7c3aed"></span> Festival venue</div>
+            <div class="legend-item"><span class="dot" style="background:#15803d"></span> Campsite — front-runner</div>
+            <div class="legend-item"><span class="dot" style="background:#d97706"></span> Campsite — considered</div>
+            <div class="legend-item"><span class="dot" style="background:#9ca3af"></span> Ruled out</div>
+            <div class="legend-item"><span class="dot" style="background:#0891b2"></span> Lake District (maybe)</div>
+          </div>
+          <div class="note">Pin locations are geocoded live from each address via the Google Maps Geocoding API — accurate to the real building/area, not an estimate.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ITINERARY TAB -->
+  <div class="tab" id="tab-itinerary">
+    <div class="card">
+      <h2>Day by day</h2>
+      <table>
+        <thead><tr><th>Day</th><th>Date</th><th>Plan</th></tr></thead>
+        <tbody id="itineraryBody"></tbody>
+      </table>
+    </div>
+    <div class="card">
+      <h2>Free camping windows</h2>
+      <p class="fact"><b>Pre-festival (Mon 13 – Thu 16 Jul):</b> collect the camper same day as the ferry, then free until the festival — roughly 2–3 free nights (13th, 14th, 15th).</p>
+      <p class="fact"><b>Post-festival (Tue 21 Jul):</b> one free night between the Calder Farm checkout and the Wed 22 Jul ferry — ideally positioned toward Hulland Ward to set up the return drive.</p>
+      <p class="fact"><b>Revised recommendation:</b> use the Peak District for both free windows — it sits right on the doorstep of Hulland Ward with zero detour, unlike the Lake District (2h25+ one-way from the actual camper base).</p>
+    </div>
+  </div>
+
+  <!-- BOOKINGS TAB -->
+  <div class="tab" id="tab-bookings">
+    <div class="booking-grid">
+
+      <div class="card">
+        <h3>⛴️ Ferry — Isle of Man Steam Packet</h3>
+        <div class="status-line"><span class="status-dot good"></span> Paid in full — £421.00</div>
+        <p class="fact"><b>Booking ref:</b> PG93372/000</p>
+        <p class="fact"><b>Outbound:</b> Douglas → Liverpool, Mon 13 Jul, 07:15–10:00, ship Manannan. Niarbyl Lounge, seats 6 &amp; 5.</p>
+        <p class="fact"><b>Return:</b> Liverpool → Douglas, Wed 22 Jul, 19:15–22:00, ship Manannan. Premium Lounge, seats 13 &amp; 14. Check-in opens 16:45, closes 18:30.</p>
+        <p class="fact"><b>Terminal:</b> Isle of Man Ferry Terminal, 1 Triskelion Way, Liverpool, L3 0BN (use L3 0AY if satnav doesn't recognise it). NOT Twelve Quays, Birkenhead.</p>
+      </div>
+
+      <div class="card">
+        <h3>🚐 Camper van — "Eva", 4eva Young Camper Hire</h3>
+        <div class="status-line"><span class="status-dot good"></span> Hire fee paid in full — £1,690.00</div>
+        <p class="fact"><b>Dates:</b> 13–22 July (9 nights), 2 named drivers (Ashur Aziz + Faith Marshall), unlimited UK mileage.</p>
+        <p class="fact"><b>Collection:</b> Hulland Ward, Ashbourne, Derbyshire — exact postcode not yet published; working assumption only.</p>
+        <p class="fact"><b>Contact:</b> Paul Young — <a class="contact" href="tel:07970350561">07970 350561</a> · <a class="contact" href="mailto:04evayoungcamperhire@gmail.com">04evayoungcamperhire@gmail.com</a></p>
+        <div class="warn-box">⚠️ £1,000 refundable damages deposit is SEPARATE from the £1,690 paid and doesn't look arranged yet. Due <b>Mon 6 Jul</b> if paying by bank transfer, or handled as a card pre-authorisation on collection instead.</div>
+        <div class="warn-box">⚠️ Collection-day email with exact address expected ~2 weeks before hire (around 29 Jun) — chase Paul if not received.</div>
+      </div>
+
+      <div class="card">
+        <h3>🎪 Beat-Herder Festival</h3>
+        <p class="fact"><b>Dates:</b> Thursday 16 – Sunday 19 July 2026</p>
+        <p class="fact"><b>Venue:</b> Dockber Farm, Sawley, Lancashire (Ribble Valley), BB7 4LH</p>
+      </div>
+
+      <div class="card">
+        <h3>🏡 Calder Farm, Clitheroe</h3>
+        <div class="status-line"><span class="status-dot good"></span> Cabin booked</div>
+        <p class="fact"><b>Address:</b> Settle Road, Clitheroe, Bolton-by-Bowland, BB7 4NT</p>
+        <p class="fact"><b>Stay:</b> Check in Mon 20 Jul (~5pm after leaving the festival), staying the 20th–21st. ~3 miles / 10 min from Beat-Herder.</p>
+        <p class="fact"><b>Contact:</b> <a class="contact" href="tel:01200447725">01200 447725</a> · <a class="contact" href="http://www.calderfarm.co.uk/" target="_blank" rel="noopener">calderfarm.co.uk</a></p>
+        <div class="warn-box">⚠️ Cabin number/name and exact checkout time still unconfirmed — call to confirm (site requires min. 2-night stay; the 10pm note is a night-time policy, not a checkout time).</div>
+      </div>
+
+      <div class="card">
+        <h3>📌 Quick reference — key contacts</h3>
+        <p class="fact"><b>Camper hire:</b> Paul Young — <a class="contact" href="tel:07970350561">07970 350561</a></p>
+        <p class="fact"><b>Calder Farm:</b> <a class="contact" href="tel:01200447725">01200 447725</a></p>
+        <p class="fact"><b>Ferry ref:</b> PG93372/000 (Steam Packet)</p>
+        <p class="fact"><b>Weather check:</b> nearer the time, check the Met Office long-range forecast for BB7 (Sawley/Clitheroe) — too far out for a real forecast today.</p>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- CAMPSITES TAB -->
+  <div class="tab" id="tab-campsites">
+    <div class="card">
+      <h2>What we're looking for</h2>
+      <p class="fact">Not too farm-like/basic, not too posh · restaurant/bar on site or a genuinely walkable pub · "exciting/interesting" over pure walking-tour destinations · charming towns with independent shops (the Grassington appeal) · beautiful views · must suit a campervan (proper touring pitches, motorhome-safe roads) · ideally under 2h per driving leg.</p>
+    </div>
+    <div class="card">
+      <h2>Full comparison</h2>
+      <div style="overflow-x:auto;">
+      <table>
+        <thead><tr><th>Site</th><th>Status</th><th>From Hulland Ward</th><th>To Beat-Herder</th><th>Rating</th></tr></thead>
+        <tbody id="campsiteBody"></tbody>
+      </table>
+      </div>
+      <p class="note">Click any pin on the Map tab for the full good/bad breakdown and walking distances — this table is just for quick side-by-side comparison.</p>
+    </div>
+  </div>
+
+  <!-- TODO TAB -->
+  <div class="tab" id="tab-todo">
+    <div class="card">
+      <h2>Open items</h2>
+      <div id="todoList"></div>
+      <p class="note">Ticks are saved on this device (localStorage) — they won't sync across devices, but the master list always lives in Obsidian.</p>
+    </div>
+  </div>
+
+</main>
+
+<footer>Beat-Herder 2026 trip planner · built from Obsidian trip notes · last data refresh 2 Jul 2026 · map &amp; routing by Google Maps Platform</footer>
+
+<script>
+window.gmapsLoadFailed = function() {
+  const mapEl = document.getElementById("map");
+  if (mapEl) mapEl.innerHTML = '<div style="padding:40px;text-align:center;color:#8f2c2c;font-size:13px;">Google Maps failed to load — check the API key, billing, and enabled APIs in Google Cloud Console.</div>';
+};
+</script>
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD0CJXCESDXFvIwCXNhUORBBJJrQ88MgwY&libraries=geometry&loading=async&callback=initApp&onerror=gmapsLoadFailed" async defer></script>
+<script>
+/* ---------- DATA ---------- */
+
+const LOCATIONS = [
+  {
+    id: "ferry", name: "Liverpool Ferry Terminal", category: "booking",
+    lat: 53.4130, lon: -2.9930,
+    address: "1 Triskelion Way, Liverpool, L3 0BN",
+    facts: [
+      "Outbound: Mon 13 Jul, 07:15–10:00, ship Manannan",
+      "Return: Wed 22 Jul, 19:15–22:00, ship Manannan",
+      "Check-in for return opens 16:45, closes 18:30"
+    ],
+    good: ["Correct terminal confirmed — on the Liverpool side, no Mersey tunnel or toll needed", "Booking fully paid (£421)"],
+    bad: ["NOT Twelve Quays, Birkenhead — a common satnav mix-up (that's the Stena Line terminal)", "If L3 0BN doesn't resolve on satnav, use L3 0AY instead"],
+    walk: null
+  },
+  {
+    id: "hulland-ward", name: "Hulland Ward (camper collection)", category: "booking",
+    lat: 53.0027, lon: -1.6924,
+    address: "Ashbourne, Derbyshire — exact postcode not yet published",
+    facts: [
+      "Collect & return camper van \"Eva\" here (4eva Young Camper Hire)",
+      "Own car left here for the duration",
+      "Gateway to the Peak District — zero-detour base for both free camping windows"
+    ],
+    good: ["Sits right on the doorstep of the Peak District", "Well-placed for both the outbound and return legs"],
+    bad: ["Exact address still not confirmed — working assumption only, awaiting Paul's collection-day email", "£1,000 damages deposit due Mon 6 Jul if paying by bank transfer"],
+    walk: null
+  },
+  {
+    id: "beatherder", name: "Beat-Herder Festival", category: "venue",
+    lat: 53.9290, lon: -2.4120,
+    address: "Dockber Farm, Sawley, Lancashire, BB7 4LH",
+    facts: ["Thursday 16 – Sunday 19 July 2026", "Leave for Calder Farm ~5pm on Mon 20 Jul"],
+    good: ["The whole trip is built around this — main event"],
+    bad: [],
+    walk: null
+  },
+  {
+    id: "calder-farm", name: "Calder Farm, Clitheroe", category: "booking",
+    lat: 53.9290, lon: -2.3700,
+    address: "Settle Road, Clitheroe, Bolton-by-Bowland, BB7 4NT",
+    facts: ["Check in Mon 20 Jul, staying 20th–21st", "~3 miles / 10 min from Beat-Herder", "01200 447725 · calderfarm.co.uk"],
+    good: ["Very short drive from the festival — easy wind-down after 4 days"],
+    bad: ["Cabin number/name not yet confirmed", "Exact checkout time not published — call to confirm"],
+    walk: null
+  },
+
+  {
+    id: "hartington-hills", name: "Hartington Hills", category: "frontrunner",
+    lat: 53.1450, lon: -1.8680, address: "Hulme End, nr Hartington, SK17 0HH",
+    fromHW: "15.1mi / 28min", toBH: "76.2mi / 1h49", rating: "4.8★ Google · 9.8/10 Pitchup · 4.7★ TripAdvisor",
+    walk: "Manifold Inn — 0.8km / 10 min walk across fields. Dovedale stepping stones 15 min drive.",
+    good: ["Closest front-runner to Hulland Ward — shortest first-day drive", "Top-rated across every platform checked", "Proper walkable pub, not a drive", "\"In the middle\" feel — not too farm-like, not too posh", "On-site horsebox bar, 5–7pm"],
+    bad: ["Furthest of the two front-runners from Beat-Herder (1h49)", "Only a bar on site, not a full restaurant"]
+  },
+  {
+    id: "dalesbridge", name: "Dalesbridge", category: "frontrunner",
+    lat: 54.0880, lon: -2.3010, address: "Austwick, Settle, LA2 8AT",
+    fromHW: "108mi / 2h29", toBH: "19.5mi / 30min", rating: "Best photos/character of anything checked",
+    walk: "Game Cock Inn, Austwick — 10 min walk. Ingleton Waterfalls Trail 15 min drive.",
+    good: ["Best-looking, most characterful campsite found — stone farmhouse, riverside meadow", "On-site bar + wood-fired pizza nights", "Short 30-min hop onward to the festival", "Walkable village pub"],
+    bad: ["Long first-day drive from Hulland Ward — 2h29, over the 2h comfort limit (~4.5h total driving that day)", "Austwick itself is tiny — not a \"browse the shops\" town like Skipton or Hawes"]
+  },
+  {
+    id: "castleton-camc", name: "Castleton (Losehill) CAMC", category: "considered",
+    lat: 53.3455, lon: -1.7735, address: "Castleton, Derbyshire (Peak District)",
+    fromHW: "30.3mi / 56min", toBH: "63.0mi / 1h31", rating: "4.8★ Google (937 reviews) — highest-rated of the considered group",
+    walk: "Castleton village pubs — within walking distance (exact time not confirmed).",
+    good: ["Pretty castle village setting", "Good pubs nearby", "Safe, motorhome-friendly access"],
+    bad: ["On-site food/bar not checked in detail", "Further from Hulland Ward than Hartington Hills"]
+  },
+  {
+    id: "chatsworth-camc", name: "Chatsworth Park CAMC", category: "considered",
+    lat: 53.2272, lon: -1.6106, address: "Inside the Chatsworth Estate, Derbyshire",
+    fromHW: "21.2mi / 41min", toBH: "72.4mi / 1h45", rating: "4.7★ Google (1,209 reviews)",
+    walk: "Gastropub villages nearby — Beeley, Rowsley, Baslow (short drive, not walkable).",
+    good: ["Inside the Chatsworth Estate — beautiful grounds", "Well-rated, lots of reviews", "Good gastropubs close by"],
+    bad: ["\"A bit posh\" — doesn't match the preference for something in the middle", "Pubs are a drive, not a walk"]
+  },
+  {
+    id: "lickpenny", name: "Lickpenny, Matlock", category: "considered",
+    lat: 53.1200, lon: -1.5600, address: "Tansley, nr Matlock, Derbyshire",
+    fromHW: "13.8mi / 28min", toBH: "not checked", rating: "4.6★ Google (716 reviews)",
+    walk: "Not confirmed — gateway to Matlock Bath (cable car, promenade, cafes).",
+    good: ["Closest campsite of any option to Hulland Ward", "Gateway to quirky Matlock Bath"],
+    bad: ["Distance onward to Beat-Herder not checked", "Lower profile than Hartington Hills, less researched"]
+  },
+  {
+    id: "greenhills", name: "Greenhills, Bakewell", category: "considered",
+    lat: 53.2100, lon: -1.6800, address: "nr Bakewell, Derbyshire",
+    fromHW: "not checked", toBH: "not checked", rating: "4.4★ Google (892 reviews)",
+    walk: "5 minutes from Bakewell town centre.",
+    good: ["Very close to Bakewell"],
+    bad: ["Lower-rated than the other Peak District options", "Least researched of the group — distances not checked"]
+  },
+  {
+    id: "niffany-farm", name: "Niffany Farm, Skipton", category: "considered",
+    lat: 53.9650, lon: -2.0100, address: "Edge of Skipton, North Yorkshire",
+    fromHW: "104mi / 2h11", toBH: "13.7mi / 21min — shortest onward hop of any option", rating: "Not checked numerically",
+    walk: "By the Leeds–Liverpool Canal, edge of Skipton town — walking time into the centre not confirmed.",
+    good: ["Shortest hop to the festival of everything considered (21 min)", "Skipton is the biggest \"Gateway to the Dales\" town — castle, canal boats, cobbled high street, lots of independent shops/cafes — closest match to the Grassington appeal"],
+    bad: ["The pitching field itself is a fairly plain grass paddock — not as characterful as Dalesbridge", "Long first-day drive from Hulland Ward (2h11)"]
+  },
+  {
+    id: "bainbridge-ings", name: "Bainbridge Ings, Hawes", category: "considered",
+    lat: 54.3050, lon: -2.1950, address: "Hawes, Wensleydale, North Yorkshire",
+    fromHW: "138mi / 2h39 — furthest option considered", toBH: "38.4mi / 1h07", rating: "9/10 (178 reviews)",
+    walk: "10–15 min walk into Hawes — Wensleydale Creamery tour, ropemakers, Dales Countryside Museum, dog-friendly pubs.",
+    good: ["Most charming individual town attractions of anything considered", "Glamping pods with hot tubs, photos look genuinely charming", "Proper walkable \"little shops and interests\" town"],
+    bad: ["Furthest single drive of everything considered — 2h39 from Hulland Ward"]
+  },
+  {
+    id: "rowter-farm", name: "Rowter Farm, Castleton", category: "ruledout",
+    lat: 53.3410, lon: -1.8180, address: "Winnats Pass, Castleton, Derbyshire",
+    fromHW: "34.5mi / 55min", toBH: "61.4mi / 1h27", rating: "Stunning views",
+    walk: null,
+    good: ["Stunning Winnats Pass views"],
+    bad: ["RULED OUT — access road is a 1:4 gradient, unsuitable for motorhomes/caravans"]
+  },
+  {
+    id: "fieldhead", name: "Fieldhead, Edale", category: "ruledout",
+    lat: 53.3648, lon: -1.8127, address: "Edale, Derbyldshire (Peak District)",
+    fromHW: "not applicable", toBH: "not applicable", rating: "—",
+    walk: null,
+    good: [],
+    bad: ["RULED OUT — tent-only, no vehicles allowed on site at all"]
+  },
+  {
+    id: "rivendale", name: "Rivendale, Alsop-en-le-Dale", category: "ruledout",
+    lat: 53.0866, lon: -1.7671, address: "Alsop-en-le-Dale, Derbyshire",
+    fromHW: "not applicable", toBH: "not applicable", rating: "—",
+    walk: null,
+    good: [],
+    bad: ["RULED OUT — converted to lodge-only in 2017, no touring pitches left"]
+  },
+  {
+    id: "wharfedale", name: "Wharfedale CAMC, Threshfield", category: "ruledout",
+    lat: 54.0759, lon: -2.0186, address: "Threshfield, North Yorkshire",
+    fromHW: "115mi / 2h24", toBH: "23.3mi / 36min", rating: "4.7★ Google",
+    walk: "2.1mi / 45 min walk into Grassington — further than it looks on paper.",
+    good: ["Good reviews", "Short hop to the festival"],
+    bad: ["RULED OUT on looks after checking actual photos — flat, bland rows-of-caravans field despite the good reviews", "Grassington walk is 45 minutes, not a quick stroll"]
+  },
+
+  { id: "kendal", name: "Kendal C&MC, Sedgwick", category: "maybe",
+    lat: 54.2639, lon: -2.7404, address: "Sedgwick, nr Kendal, Cumbria",
+    fromHW: "138mi / 2h25 (from Hulland Ward)", toBH: "35.5mi / 55min (via Calder Farm leg)", rating: "~£20–30/night",
+    walk: "Not confirmed — riverside woodland setting.",
+    good: ["Closest Lakes option to the route, shortest hop each way of the Lakes group", "Peaceful riverside woodland"],
+    bad: ["Least dramatic scenery of the Lakes group", "Still a big detour from the real Hulland Ward base"]
+  },
+  { id: "park-cliffe", name: "Park Cliffe, Windermere", category: "maybe",
+    lat: 54.3110, lon: -2.9130, address: "Windermere, Cumbria",
+    fromHW: "~2h40+ (from Hulland Ward)", toBH: "50.2mi / 1h14", rating: "£28/night",
+    walk: "On-site bar + food truck (Mexican/breakfast) — no need to leave site.",
+    good: ["Award-winning site", "On-site bar and food truck"],
+    bad: ["More lively/family feel than restful", "Big detour from Hulland Ward"]
+  },
+  { id: "low-wray", name: "Low Wray (NT), Windermere", category: "maybe",
+    lat: 54.3961, lon: -2.9767, address: "Ambleside, LA22 0JA",
+    fromHW: "~2h50+ (from Hulland Ward)", toBH: "53.9mi / 1h26", rating: "Pricey, exact rate not published",
+    walk: "Wray Castle (NT) — 15 min walk along the lake.",
+    good: ["Lakeshore setting on Windermere", "Wood-fired pizza on site 3 nights/week"],
+    bad: ["Popular — busy in summer", "Big detour from Hulland Ward"]
+  },
+  { id: "great-langdale", name: "Great Langdale (NT)", category: "maybe",
+    lat: 54.4436, lon: -3.0980, address: "Ambleside, LA22 9JU",
+    fromHW: "~3h00+ (from Hulland Ward)", toBH: "57.9mi / 1h36", rating: "~£20–35/night",
+    walk: "Sticklebarn pub — right on site, a few hundred yards. Stickle Ghyll waterfall 20 min walk.",
+    good: ["Most dramatic scenery of the whole Lakes group", "Genuinely restful, no shop/arcade distractions", "Named \"best all-rounder\" of the Lakes options"],
+    bad: ["Biggest detour of the trip from the real Hulland Ward base"]
+  },
+  { id: "sykeside", name: "Sykeside, Patterdale", category: "maybe",
+    lat: 54.5423, lon: -2.9391, address: "Patterdale, CA11 0NZ",
+    fromHW: "~3h20+ (furthest overall)", toBH: "56.7mi / 1h34", rating: "from £23.70/night",
+    walk: "Brotherswater Inn — right on site.",
+    good: ["Pub literally on site", "Stunning Kirkstone/Brotherswater mountain views"],
+    bad: ["Can get boggy in wet weather", "Furthest overall of everything considered"]
+  },
+  { id: "quiet-site", name: "The Quiet Site, Ullswater", category: "maybe",
+    lat: 54.6011, lon: -2.8747, address: "Watermillock, CA11 0LS",
+    fromHW: "~3h10+ (from Hulland Ward)", toBH: "72.3mi / 1h36", rating: "from £20/night pitch, £40+ pods",
+    walk: "Brackenrigg Inn — 10 min drive (not a walk). Aira Force waterfall 10 min drive.",
+    good: ["Deliberately, designedly peaceful — \"UK's most romantic campsite\"", "Own bar/cafe on site", "Gorgeous Ullswater views"],
+    bad: ["Adult-leaning vibe may not suit everyone", "Pub is a drive, not a walk"]
+  },
+  { id: "castlerigg", name: "Castlerigg Hall, Keswick", category: "maybe",
+    lat: 54.5960, lon: -3.1210, address: "Keswick, CA12 4TE",
+    fromHW: "~3h15+ (from Hulland Ward)", toBH: "66.4mi / 1h43", rating: "5-star, pricey",
+    walk: "15–20 min walk into Keswick — lots of pubs/restaurants. Castlerigg Stone Circle 10 min walk.",
+    good: ["Superb Derwentwater/Skiddaw views", "Walkable into busy, well-supplied Keswick", "Stone circle a short walk away"],
+    bad: ["Pricey", "Keswick can be busy/touristy in July"]
+  }
+];
+
+const CATEGORY_STYLE = {
+  booking:     { color: "#2b6cb0", icon: "📍", label: "Key booking" },
+  venue:       { color: "#7c3aed", icon: "🎪", label: "Festival venue" },
+  frontrunner: { color: "#15803d", icon: "🏕️", label: "Front-runner" },
+  considered:  { color: "#d97706", icon: "🏕️", label: "Considered" },
+  ruledout:    { color: "#9ca3af", icon: "🚫", label: "Ruled out" },
+  maybe:       { color: "#0891b2", icon: "🏔️", label: "Lake District (maybe)" }
+};
+
+const ITINERARY = [
+  { day: "Mon", date: "13 Jul", plan: "Ferry Douglas → Liverpool, dep 07:15 arr 10:00. Drive ~2h to Hulland Ward to collect \"Eva\", leave own car there. Free from early/mid-afternoon.", festival: false },
+  { day: "Mon–Wed", date: "13–15 Jul", plan: "Free camping nights before the festival — campsite still to be decided (Peak District/Dales front-runners: Hartington Hills or Dalesbridge).", festival: false },
+  { day: "Thu–Sun", date: "16–19 Jul", plan: "Beat-Herder Festival, Dockber Farm, Sawley, Lancashire BB7 4LH.", festival: true },
+  { day: "Mon", date: "20 Jul, ~5pm", plan: "Leave festival → Calder Farm, Clitheroe (7 min away).", festival: false },
+  { day: "Mon–Tue", date: "20–21 Jul", plan: "Stay at Calder Farm (cabin, number TBC).", festival: false },
+  { day: "Tue", date: "21 Jul", plan: "Checkout (time TBC) → one free night, location TBD, ideally positioned toward Hulland Ward.", festival: false },
+  { day: "Wed", date: "22 Jul", plan: "Drive to Hulland Ward, return \"Eva\", collect car → drive ~2h to Liverpool → ferry check-in opens 16:45, closes 18:30, departs 19:15, arrives Douglas 22:00.", festival: false }
+];
+
+const TODOS = [
+  { text: "Get exact camper hire collection address/postcode (Hulland Ward) from Paul's collection-day email", urgent: true },
+  { text: "Confirm how the £1,000 damages deposit is being paid — bank transfer due Mon 6 Jul, or card pre-auth on collection", urgent: true },
+  { text: "Chase 4eva Young Camper Hire's collection-day email if not received by ~6 Jul", urgent: true },
+  { text: "Get Calder Farm cabin number/name and exact checkout time (call 01200 447725)", urgent: false },
+  { text: "Decide pre-festival campsite (front-runners: Hartington Hills or Dalesbridge; or one of the others)", urgent: false },
+  { text: "Decide the one free night after Calder Farm, before the return ferry", urgent: false },
+  { text: "Check the Met Office long-range forecast for BB7 nearer the time", urgent: false }
+];
+
+/* ---------- MAP (Google Maps Platform) ---------- */
+
+const MAP_STYLE = [
+  { elementType: "geometry", stylers: [{ color: "#f5f2ea" }] },
+  { elementType: "labels.icon", stylers: [{ visibility: "off" }] },
+  { elementType: "labels.text.fill", stylers: [{ color: "#6b6355" }] },
+  { elementType: "labels.text.stroke", stylers: [{ color: "#f5f2ea" }] },
+  { featureType: "administrative.land_parcel", elementType: "labels.text.fill", stylers: [{ color: "#bdbdbd" }] },
+  { featureType: "poi", elementType: "geometry", stylers: [{ color: "#eee7d8" }] },
+  { featureType: "poi.park", elementType: "geometry", stylers: [{ color: "#e3ecdd" }] },
+  { featureType: "poi.park", elementType: "labels.text.fill", stylers: [{ color: "#9e9e9e" }] },
+  { featureType: "road", elementType: "geometry", stylers: [{ color: "#ffffff" }] },
+  { featureType: "road.arterial", elementType: "labels.text.fill", stylers: [{ color: "#8a8378" }] },
+  { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#e8873c" }, { lightness: 65 }] },
+  { featureType: "road.highway", elementType: "labels.text.fill", stylers: [{ color: "#c96a1f" }] },
+  { featureType: "road.local", elementType: "labels.text.fill", stylers: [{ color: "#9e9e9e" }] },
+  { featureType: "transit.line", elementType: "geometry", stylers: [{ color: "#e5e5e5" }] },
+  { featureType: "water", elementType: "geometry", stylers: [{ color: "#cfe0ea" }] },
+  { featureType: "water", elementType: "labels.text.fill", stylers: [{ color: "#8a8378" }] }
+];
+
+let map, geocoder, directionsService, directionsRenderer;
+const markerById = {};
+const allLatLngs = [];
+let geocodedCount = 0;
+
+function initApp() {
+  map = new google.maps.Map(document.getElementById("map"), {
+    center: { lat: 53.6, lng: -2.4 },
+    zoom: 8,
+    styles: MAP_STYLE,
+    mapTypeControl: false,
+    streetViewControl: false
+  });
+  geocoder = new google.maps.Geocoder();
+  directionsService = new google.maps.DirectionsService();
+  directionsRenderer = new google.maps.DirectionsRenderer({
+    map,
+    suppressMarkers: true,
+    preserveViewport: true,
+    polylineOptions: { strokeColor: "#e8873c", strokeWeight: 5, strokeOpacity: 0.85 }
+  });
+
+  LOCATIONS.forEach(loc => geocodeAndPlace(loc));
+
+  document.getElementById("fitAll").addEventListener("click", fitAllBounds);
+
+  wireRouteControls();
+}
+
+function geocodeAndPlace(loc) {
+  const query = `${loc.address}, UK`;
+  geocoder.geocode({ address: query }, (results, status) => {
+    let position;
+    if (status === "OK" && results[0]) {
+      position = results[0].geometry.location;
+    } else {
+      position = new google.maps.LatLng(loc.lat, loc.lon);
+    }
+    loc.resolvedLatLng = position;
+    placeMarker(loc, position);
+    geocodedCount++;
+    if (geocodedCount === LOCATIONS.length) fitAllBounds();
+  });
+}
+
+function placeMarker(loc, position) {
+  const s = CATEGORY_STYLE[loc.category];
+  const marker = new google.maps.Marker({
+    position, map, title: loc.name,
+    icon: {
+      path: google.maps.SymbolPath.CIRCLE,
+      fillColor: s.color, fillOpacity: 1,
+      strokeColor: "#ffffff", strokeWeight: 2,
+      scale: 13
+    },
+    label: { text: s.icon, fontSize: "13px" }
+  });
+  marker.addListener("click", () => {
+    if (routeMode) addRouteStop(loc); else showDetail(loc);
+  });
+  markerById[loc.id] = marker;
+  allLatLngs.push(position);
+}
+
+function fitAllBounds() {
+  const bounds = new google.maps.LatLngBounds();
+  allLatLngs.forEach(p => bounds.extend(p));
+  map.fitBounds(bounds);
+}
+
+/* ---------- DETAIL PANEL ---------- */
+
+function showDetail(loc) {
+  const s = CATEGORY_STYLE[loc.category];
+  const card = document.getElementById("detailCard");
+  let html = `<span class="badge" style="background:${s.color}22;color:${s.color}">${s.label}</span>`;
+  html += `<h3 style="margin-top:0;">${loc.name}</h3>`;
+  html += `<div style="font-size:12.5px;color:#8a8378;margin-bottom:8px;">${loc.address}</div>`;
+
+  if (loc.fromHW) html += `<div class="stat-row"><span class="stat-label">From Hulland Ward</span><span class="stat-value">${loc.fromHW}</span></div>`;
+  if (loc.toBH) html += `<div class="stat-row"><span class="stat-label">On to Beat-Herder</span><span class="stat-value">${loc.toBH}</span></div>`;
+  if (loc.rating) html += `<div class="stat-row"><span class="stat-label">Rating / price</span><span class="stat-value">${loc.rating}</span></div>`;
+
+  if (loc.facts) {
+    html += `<div class="section-label">Key facts</div><ul class="good">${loc.facts.map(f => `<li>${f}</li>`).join("")}</ul>`;
+  }
+  if (loc.walk) {
+    html += `<div class="walk-line">🚶 <b>Walking:</b> ${loc.walk}</div>`;
+  }
+  if (loc.good && loc.good.length) {
+    html += `<div class="section-label">👍 Good</div><ul class="good">${loc.good.map(g => `<li>${g}</li>`).join("")}</ul>`;
+  }
+  if (loc.bad && loc.bad.length) {
+    html += `<div class="section-label">👎 Bad</div><ul class="bad">${loc.bad.map(b => `<li>${b}</li>`).join("")}</ul>`;
+  }
+  card.innerHTML = html;
+}
+
+/* ---------- ROUTE PLANNER ---------- */
+
+let routeMode = false;
+let routeStops = [];
+
+function wireRouteControls() {
+  document.getElementById("routeToggle").addEventListener("click", () => {
+    routeMode = !routeMode;
+    const btn = document.getElementById("routeToggle");
+    const noteEl = document.getElementById("modeNote");
+    if (routeMode) {
+      btn.textContent = "✅ Planning… click pins to add stops";
+      btn.classList.add("on");
+      noteEl.textContent = "Route mode is ON — click pins in the order you'd visit them. Driving time adds up automatically below.";
+      renderRoutePanel();
+    } else {
+      btn.textContent = "🧭 Plan a Route";
+      btn.classList.remove("on");
+      noteEl.textContent = "Click any pin for full details — distances, walking info, and the good & bad of each place. Toggle \"Plan a Route\" to instead click pins in order and build up a driving-time total.";
+      document.getElementById("detailCard").innerHTML = `<div class="detail-empty">Click a pin on the map to see everything about that place.</div>`;
+    }
+  });
+
+  document.getElementById("routeClear").addEventListener("click", () => {
+    routeStops = [];
+    directionsRenderer.setDirections({ routes: [] });
+    if (routeMode) renderRoutePanel();
+  });
+}
+
+function addRouteStop(loc) {
+  routeStops.push(loc);
+  renderRoutePanel();
+  calculateRoute();
+}
+
+function removeRouteStop(index) {
+  routeStops.splice(index, 1);
+  renderRoutePanel();
+  if (routeStops.length >= 2) calculateRoute();
+  else directionsRenderer.setDirections({ routes: [] });
+}
+
+function renderRoutePanel() {
+  const card = document.getElementById("detailCard");
+  let html = `<h3 style="margin-top:0;">🧭 Route planner</h3>`;
+  if (routeStops.length === 0) {
+    html += `<div class="detail-empty">Click pins on the map, in order, to build a route.</div>`;
+  } else {
+    html += `<ul class="route-list">`;
+    routeStops.forEach((loc, i) => {
+      html += `<li><span class="num">${i + 1}</span><span class="name">${loc.name}</span><span class="remove" onclick="removeRouteStop(${i})">✕</span></li>`;
+    });
+    html += `</ul>`;
+    html += `<div id="routeResult" class="route-total">${routeStops.length < 2 ? "Add at least 2 stops to calculate driving time." : "Calculating…"}</div>`;
+  }
+  card.innerHTML = html;
+}
+
+function calculateRoute() {
+  if (routeStops.length < 2) return;
+  const origin = routeStops[0].resolvedLatLng;
+  const destination = routeStops[routeStops.length - 1].resolvedLatLng;
+  const waypoints = routeStops.slice(1, -1).map(l => ({ location: l.resolvedLatLng, stopover: true }));
+
+  directionsService.route({
+    origin, destination, waypoints,
+    optimizeWaypoints: false,
+    travelMode: google.maps.TravelMode.DRIVING
+  }, (result, status) => {
+    const resultEl = document.getElementById("routeResult");
+    if (status !== "OK") {
+      if (resultEl) resultEl.textContent = `Couldn't calculate driving time (${status}) — check the API key/billing or try again.`;
+      return;
+    }
+    directionsRenderer.setDirections(result);
+    const legs = result.routes[0].legs;
+    const totalMeters = legs.reduce((sum, l) => sum + l.distance.value, 0);
+    const totalSeconds = legs.reduce((sum, l) => sum + l.duration.value, 0);
+    const miles = (totalMeters / 1609.34).toFixed(1);
+    const mins = Math.round(totalSeconds / 60);
+    const h = Math.floor(mins / 60), m = mins % 60;
+    const timeStr = h > 0 ? `${h}h ${m}min` : `${m} min`;
+    if (resultEl) {
+      resultEl.innerHTML = `${miles} miles · ${timeStr} total driving<span class="small">${routeStops.length} stops, in the order clicked · via Google Directions (real roads)</span>`;
+    }
+  });
+}
+
+/* ---------- ITINERARY TAB ---------- */
+
+try {
+  const itinBody = document.getElementById("itineraryBody");
+  ITINERARY.forEach(row => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td><span class="day-pill ${row.festival ? "festival" : ""}">${row.day}</span></td><td>${row.date}</td><td>${row.plan}</td>`;
+    itinBody.appendChild(tr);
+  });
+} catch (e) { console.error("Itinerary table failed:", e); }
+
+/* ---------- CAMPSITES TAB ---------- */
+
+try {
+  const campBody = document.getElementById("campsiteBody");
+  LOCATIONS.filter(l => ["frontrunner", "considered", "ruledout", "maybe"].includes(l.category)).forEach(loc => {
+    const tr = document.createElement("tr");
+    if (loc.category === "ruledout") tr.classList.add("row-ruledout");
+    tr.innerHTML = `
+      <td><b>${loc.name}</b></td>
+      <td><span class="status-tag ${loc.category}">${CATEGORY_STYLE[loc.category].label}</span></td>
+      <td>${loc.fromHW || "—"}</td>
+      <td>${loc.toBH || "—"}</td>
+      <td>${loc.rating || "—"}</td>
+    `;
+    campBody.appendChild(tr);
+  });
+} catch (e) { console.error("Campsites table failed:", e); }
+
+/* ---------- TABS (wired early, before anything riskier below can break it) ---------- */
+
+try {
+  document.querySelectorAll("#tabnav button").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll("#tabnav button").forEach(b => b.classList.remove("active"));
+      document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+      btn.classList.add("active");
+      document.getElementById("tab-" + btn.dataset.tab).classList.add("active");
+      if (btn.dataset.tab === "map" && map) setTimeout(() => { google.maps.event.trigger(map, "resize"); fitAllBounds(); }, 50);
+    });
+  });
+} catch (e) { console.error("Tab wiring failed:", e); }
+
+/* ---------- COUNTDOWN ---------- */
+
+try {
+  function updateCountdown() {
+    const now = new Date();
+    const ferryOut = new Date("2026-07-13T07:15:00+01:00");
+    const festivalStart = new Date("2026-07-16T00:00:00+01:00");
+    const el = document.getElementById("countdown");
+    if (now < ferryOut) {
+      const days = Math.ceil((ferryOut - now) / 86400000);
+      el.textContent = `⛴️ ${days} day${days === 1 ? "" : "s"} until the ferry`;
+    } else if (now < festivalStart) {
+      const days = Math.ceil((festivalStart - now) / 86400000);
+      el.textContent = `🎪 ${days} day${days === 1 ? "" : "s"} until Beat-Herder`;
+    } else {
+      el.textContent = `🎉 Trip is underway!`;
+    }
+  }
+  updateCountdown();
+} catch (e) { console.error("Countdown failed:", e); }
+
+/* ---------- TODO TAB (localStorage can throw on file:// origins in Safari — never let that break the rest of the app) ---------- */
+
+function safeStorageGet(key) {
+  try { return localStorage.getItem(key); } catch (e) { return null; }
+}
+function safeStorageSet(key, value) {
+  try { localStorage.setItem(key, value); } catch (e) { /* ignore — ticks just won't persist this session */ }
+}
+
+try {
+  const todoListEl = document.getElementById("todoList");
+  const savedTodos = JSON.parse(safeStorageGet("beatherder-todos") || "{}");
+
+  TODOS.forEach((t, i) => {
+    const id = "todo-" + i;
+    const done = !!savedTodos[id];
+    const div = document.createElement("div");
+    div.className = "todo-item" + (done ? " done" : "");
+    div.innerHTML = `<input type="checkbox" id="${id}" ${done ? "checked" : ""}><label for="${id}">${t.text}${t.urgent ? '<span class="urgent">URGENT</span>' : ""}</label>`;
+    todoListEl.appendChild(div);
+    div.querySelector("input").addEventListener("change", e => {
+      savedTodos[id] = e.target.checked;
+      safeStorageSet("beatherder-todos", JSON.stringify(savedTodos));
+      div.classList.toggle("done", e.target.checked);
+    });
+  });
+} catch (e) { console.error("To-do list failed:", e); }
+</script>
+</body>
+</html>
