@@ -121,6 +121,13 @@
     text-decoration: none;
   }
   .link-chip:hover { background: #e3d6ef; }
+  .link-chip.small { padding: 4px 9px; font-size: 11.5px; }
+  .star-widget { white-space: nowrap; }
+  .star-widget .star { cursor: pointer; font-size: 16px; color: #d8d2c4; }
+  .star-widget .star.filled { color: #e8873c; }
+  .site-cell { cursor: pointer; }
+  .site-cell:hover .site-name { text-decoration: underline; }
+  .seen-badge { margin-right: 5px; }
 
   .route-list { list-style: none; margin: 0; padding: 0; font-size: 13px; }
   .route-list li {
@@ -325,7 +332,7 @@
       <h2>Full comparison</h2>
       <div style="overflow-x:auto;">
       <table>
-        <thead><tr><th>Site</th><th>Status</th><th>From Hulland Ward</th><th>To Beat-Herder</th><th>Rating</th></tr></thead>
+        <thead><tr><th>Site</th><th>Status</th><th>Your Rating</th><th>From Hulland Ward</th><th>To Beat-Herder</th><th>Researched Rating</th><th>Link</th></tr></thead>
         <tbody id="campsiteBody"></tbody>
       </table>
       </div>
@@ -642,13 +649,14 @@ function initApp() {
   });
   placesService = new google.maps.places.PlacesService(map);
 
-  MAP_LOCATIONS.forEach(loc => geocodeAndPlace(loc));
+  LOCATIONS.forEach(loc => geocodeAndPlace(loc));
 
   document.getElementById("fitAll").addEventListener("click", fitAllBounds);
 
   wireRouteControls();
 }
 
+/* Resolve every location (including ruled-out ones, so their table links are accurate) but only place a marker for ones shown on the map */
 function geocodeAndPlace(loc) {
   const query = `${loc.address}, UK`;
   geocoder.geocode({ address: query }, (results, status) => {
@@ -659,10 +667,13 @@ function geocodeAndPlace(loc) {
       position = new google.maps.LatLng(loc.lat, loc.lon);
     }
     loc.resolvedLatLng = position;
-    placeMarker(loc, position);
-    geocodedCount++;
-    if (geocodedCount === MAP_LOCATIONS.length) fitAllBounds();
-    maybeDrawLockedRoute();
+
+    if (loc.category !== "ruledout") {
+      placeMarker(loc, position);
+      geocodedCount++;
+      if (geocodedCount === MAP_LOCATIONS.length) fitAllBounds();
+      maybeDrawLockedRoute();
+    }
     resolvePlaceExtras(loc, position);
   });
 }
@@ -686,8 +697,23 @@ function resolvePlaceExtras(loc, position) {
       if (place.website) loc.placeWebsite = place.website;
       if (place.url) loc.placeMapsUrl = place.url;
       if (currentDetailId === loc.id) showDetail(loc);
+      const linkCell = document.getElementById("link-" + loc.id);
+      if (linkCell) linkCell.innerHTML = renderLinkChip(loc);
     });
   });
+}
+
+/* Always returns a usable link — official website / Google's Place website / Google Maps place / Maps search — never a guessed domain */
+function getLocLink(loc) {
+  if (loc.website) return { url: loc.website, label: "🔗 Website" };
+  if (loc.placeWebsite) return { url: loc.placeWebsite, label: "🔗 Website" };
+  if (loc.placeMapsUrl) return { url: loc.placeMapsUrl, label: "📍 Maps" };
+  if (loc.resolvedLatLng) return { url: `https://www.google.com/maps/search/?api=1&query=${loc.resolvedLatLng.lat()},${loc.resolvedLatLng.lng()}`, label: "📍 Maps" };
+  return { url: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(loc.name + " " + loc.address)}`, label: "🔍 Search" };
+}
+function renderLinkChip(loc) {
+  const link = getLocLink(loc);
+  return `<a class="link-chip small" href="${link.url}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${link.label}</a>`;
 }
 
 /* Ferry <-> Hulland Ward is a fixed leg driven both outbound and on return — always show it, independent of the ad-hoc route planner */
@@ -748,15 +774,62 @@ function getNotesStore() {
   try { return JSON.parse(safeStorageGet("beatherder-notes") || "{}"); } catch (e) { return {}; }
 }
 
+/* ---------- YOUR RATING + "LOOKED AT" TRACKING ---------- */
+
+function getRatingsStore() {
+  try { return JSON.parse(safeStorageGet("beatherder-ratings") || "{}"); } catch (e) { return {}; }
+}
+function getViewedStore() {
+  try { return JSON.parse(safeStorageGet("beatherder-viewed") || "{}"); } catch (e) { return {}; }
+}
+function markViewed(id) {
+  const viewed = getViewedStore();
+  if (!viewed[id]) {
+    viewed[id] = true;
+    safeStorageSet("beatherder-viewed", JSON.stringify(viewed));
+  }
+}
+function setRating(id, stars) {
+  const ratings = getRatingsStore();
+  ratings[id] = ratings[id] === stars ? 0 : stars; // click the same star again to clear
+  safeStorageSet("beatherder-ratings", JSON.stringify(ratings));
+  markViewed(id);
+  renderCampsiteTable();
+  if (currentDetailId === id) {
+    const loc = LOCATIONS.find(l => l.id === id);
+    if (loc) showDetail(loc);
+  }
+}
+function renderStarWidget(locId) {
+  const current = getRatingsStore()[locId] || 0;
+  let html = `<span class="star-widget">`;
+  for (let i = 1; i <= 5; i++) {
+    html += `<span class="star ${i <= current ? "filled" : ""}" onclick="setRating('${locId}', ${i})" title="Rate ${i}/5">★</span>`;
+  }
+  html += `</span>`;
+  return html;
+}
+function openOnMap(id) {
+  const loc = LOCATIONS.find(l => l.id === id);
+  if (!loc) return;
+  document.querySelector('[data-tab="map"]').click();
+  setTimeout(() => {
+    showDetail(loc);
+    if (loc.resolvedLatLng) { map.panTo(loc.resolvedLatLng); map.setZoom(12); }
+  }, 150);
+}
+
 let currentDetailId = null;
 
 function showDetail(loc) {
   currentDetailId = loc.id;
+  markViewed(loc.id);
   const s = CATEGORY_STYLE[loc.category];
   const card = document.getElementById("detailCard");
   let html = `<span class="badge" style="background:${s.color}22;color:${s.color}">${s.label}</span>`;
   html += `<h3 style="margin-top:0;">${loc.name}</h3>`;
   html += `<div style="font-size:12.5px;color:#8a8378;margin-bottom:8px;">${loc.address}</div>`;
+  html += `<div class="section-label">⭐ Your rating</div>${renderStarWidget(loc.id)}`;
 
   const photos = loc.manualPhotos || loc.placePhotos;
   if (photos && photos.length) {
@@ -926,20 +999,32 @@ try {
 
 /* ---------- CAMPSITES TAB ---------- */
 
-try {
+function renderCampsiteTable() {
   const campBody = document.getElementById("campsiteBody");
+  if (!campBody) return;
+  const viewed = getViewedStore();
+  campBody.innerHTML = "";
   LOCATIONS.filter(l => ["frontrunner", "considered", "ruledout", "maybe"].includes(l.category)).forEach(loc => {
     const tr = document.createElement("tr");
     if (loc.category === "ruledout") tr.classList.add("row-ruledout");
+    const seenBadge = viewed[loc.id]
+      ? `<span class="seen-badge" title="You've looked at this one">✅</span>`
+      : `<span class="seen-badge" title="Not looked at yet" style="opacity:.3;">👁</span>`;
     tr.innerHTML = `
-      <td><b>${loc.name}</b></td>
+      <td class="site-cell" onclick="openOnMap('${loc.id}')">${seenBadge}<b class="site-name">${loc.name}</b></td>
       <td><span class="status-tag ${loc.category}">${CATEGORY_STYLE[loc.category].label}</span></td>
+      <td>${renderStarWidget(loc.id)}</td>
       <td>${loc.fromHW || "—"}</td>
       <td>${loc.toBH || "—"}</td>
       <td>${loc.rating || "—"}</td>
+      <td id="link-${loc.id}">${renderLinkChip(loc)}</td>
     `;
     campBody.appendChild(tr);
   });
+}
+
+try {
+  renderCampsiteTable();
 } catch (e) { console.error("Campsites table failed:", e); }
 
 /* ---------- TABS (wired early, before anything riskier below can break it) ---------- */
@@ -962,6 +1047,7 @@ try {
       btn.classList.add("active");
       document.getElementById("tab-" + btn.dataset.tab).classList.add("active");
       if (btn.dataset.tab === "map" && map) setTimeout(() => { google.maps.event.trigger(map, "resize"); fitAllBounds(); }, 50);
+      if (btn.dataset.tab === "campsites") renderCampsiteTable();
     });
   });
 } catch (e) { console.error("Tab wiring failed:", e); }
