@@ -132,6 +132,7 @@
   }
   .route-list .name { flex: 1; }
   .route-list .remove { cursor: pointer; color: var(--red); font-weight: 700; font-size: 15px; }
+  .leg-time { font-size: 11.5px; color: #a39a89; text-align: center; padding: 1px 0 5px; font-weight: 600; }
   .route-total { font-size: 14px; font-weight: 700; color: var(--purple-dark); border-top: 1px dashed var(--line); padding-top: 10px; margin-top: 10px; }
   .route-total .small { font-weight: 400; font-size: 11.5px; color: #a39a89; display: block; margin-top: 2px; }
 
@@ -815,6 +816,7 @@ function escapeHtml(str) {
 
 let routeMode = false;
 let routeStops = [];
+let routeLegTimes = [];
 
 function wireRouteControls() {
   document.getElementById("routeToggle").addEventListener("click", () => {
@@ -844,12 +846,14 @@ function wireRouteControls() {
 
 function addRouteStop(loc) {
   routeStops.push(loc);
+  routeLegTimes = [];
   renderRoutePanel();
   calculateRoute();
 }
 
 function removeRouteStop(index) {
   routeStops.splice(index, 1);
+  routeLegTimes = [];
   renderRoutePanel();
   if (routeStops.length >= 2) calculateRoute();
   else directionsRenderer.setDirections({ routes: [] });
@@ -864,6 +868,10 @@ function renderRoutePanel() {
     html += `<ul class="route-list">`;
     routeStops.forEach((loc, i) => {
       html += `<li><span class="num">${i + 1}</span><span class="name">${loc.name}</span><span class="remove" onclick="removeRouteStop(${i})">✕</span></li>`;
+      if (i < routeStops.length - 1) {
+        const legText = routeLegTimes[i] || "calculating…";
+        html += `<div class="leg-time">↓ ${legText}</div>`;
+      }
     });
     html += `</ul>`;
     html += `<div id="routeResult" class="route-total">${routeStops.length < 2 ? "Add at least 2 stops to calculate driving time." : "Calculating…"}</div>`;
@@ -889,14 +897,18 @@ function calculateRoute() {
     }
     directionsRenderer.setDirections(result);
     const legs = result.routes[0].legs;
+    routeLegTimes = legs.map(l => l.duration.text);
+    renderRoutePanel();
+
     const totalMeters = legs.reduce((sum, l) => sum + l.distance.value, 0);
     const totalSeconds = legs.reduce((sum, l) => sum + l.duration.value, 0);
     const miles = (totalMeters / 1609.34).toFixed(1);
     const mins = Math.round(totalSeconds / 60);
     const h = Math.floor(mins / 60), m = mins % 60;
     const timeStr = h > 0 ? `${h}h ${m}min` : `${m} min`;
-    if (resultEl) {
-      resultEl.innerHTML = `${miles} miles · ${timeStr} total driving<span class="small">${routeStops.length} stops, in the order clicked · via Google Directions (real roads)</span>`;
+    const freshResultEl = document.getElementById("routeResult");
+    if (freshResultEl) {
+      freshResultEl.innerHTML = `${miles} miles · ${timeStr} total driving<span class="small">${routeStops.length} stops, in the order clicked · via Google Directions (real roads)</span>`;
     }
   });
 }
