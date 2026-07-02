@@ -106,6 +106,12 @@
   ul.good li { color: #1a5c34; }
   ul.bad li { color: #8f2c2c; }
   .walk-line { font-size: 13px; background: #f6f1e6; border-radius: 8px; padding: 8px 10px; margin-top: 8px; }
+  .notes-box {
+    width: 100%; min-height: 70px; margin-top: 6px; padding: 8px 10px; font-size: 13px; font-family: inherit;
+    border: 1px solid var(--line); border-radius: 8px; resize: vertical; background: #fffdf9; color: var(--ink);
+  }
+  .notes-box:focus { outline: none; border-color: var(--amber); }
+  .notes-saved { font-size: 11px; color: #a39a89; margin-top: 3px; height: 14px; }
 
   .route-list { list-style: none; margin: 0; padding: 0; font-size: 13px; }
   .route-list li {
@@ -195,6 +201,7 @@
         <button class="btn secondary" id="fitAll">Reset view</button>
       </div>
       <div class="note" id="modeNote">Click any pin for full details — distances, walking info, and the good &amp; bad of each place. Toggle "Plan a Route" to instead click pins in order and build up a driving-time total.</div>
+      <div class="note" id="lockedRouteInfo" style="font-weight:600;color:var(--purple-dark);margin-top:6px;">🔒 Calculating the fixed ferry ⇄ camper leg…</div>
     </div>
     <div class="map-layout">
       <div id="map"></div>
@@ -209,10 +216,9 @@
             <div class="legend-item"><span class="dot" style="background:#7c3aed"></span> Festival venue</div>
             <div class="legend-item"><span class="dot" style="background:#15803d"></span> Campsite — front-runner</div>
             <div class="legend-item"><span class="dot" style="background:#d97706"></span> Campsite — considered</div>
-            <div class="legend-item"><span class="dot" style="background:#9ca3af"></span> Ruled out</div>
             <div class="legend-item"><span class="dot" style="background:#0891b2"></span> Lake District (maybe)</div>
           </div>
-          <div class="note">Pin locations are geocoded live from each address via the Google Maps Geocoding API — accurate to the real building/area, not an estimate.</div>
+          <div class="note">Pin locations are geocoded live from each address via the Google Maps Geocoding API — accurate to the real building/area, not an estimate. Ruled-out sites are left off the map (still listed on the Campsites tab for reference).</div>
         </div>
       </div>
     </div>
@@ -569,7 +575,9 @@ const MAP_STYLE = [
   { featureType: "water", elementType: "labels.text.fill", stylers: [{ color: "#8a8378" }] }
 ];
 
-let map, geocoder, directionsService, directionsRenderer;
+const MAP_LOCATIONS = LOCATIONS.filter(l => l.category !== "ruledout");
+
+let map, geocoder, directionsService, directionsRenderer, lockedRouteRenderer;
 const markerById = {};
 const allLatLngs = [];
 let geocodedCount = 0;
@@ -590,8 +598,17 @@ function initApp() {
     preserveViewport: true,
     polylineOptions: { strokeColor: "#e8873c", strokeWeight: 5, strokeOpacity: 0.85 }
   });
+  lockedRouteRenderer = new google.maps.DirectionsRenderer({
+    map,
+    suppressMarkers: true,
+    preserveViewport: true,
+    polylineOptions: {
+      strokeOpacity: 0,
+      icons: [{ icon: { path: "M 0,-1 0,1", strokeOpacity: 1, scale: 3, strokeColor: "#2b6cb0" }, offset: "0", repeat: "12px" }]
+    }
+  });
 
-  LOCATIONS.forEach(loc => geocodeAndPlace(loc));
+  MAP_LOCATIONS.forEach(loc => geocodeAndPlace(loc));
 
   document.getElementById("fitAll").addEventListener("click", fitAllBounds);
 
@@ -610,7 +627,35 @@ function geocodeAndPlace(loc) {
     loc.resolvedLatLng = position;
     placeMarker(loc, position);
     geocodedCount++;
-    if (geocodedCount === LOCATIONS.length) fitAllBounds();
+    if (geocodedCount === MAP_LOCATIONS.length) fitAllBounds();
+    maybeDrawLockedRoute();
+  });
+}
+
+/* Ferry <-> Hulland Ward is a fixed leg driven both outbound and on return — always show it, independent of the ad-hoc route planner */
+function maybeDrawLockedRoute() {
+  const ferry = LOCATIONS.find(l => l.id === "ferry");
+  const hw = LOCATIONS.find(l => l.id === "hulland-ward");
+  if (!ferry.resolvedLatLng || !hw.resolvedLatLng) return;
+
+  directionsService.route({
+    origin: ferry.resolvedLatLng,
+    destination: hw.resolvedLatLng,
+    travelMode: google.maps.TravelMode.DRIVING
+  }, (result, status) => {
+    const infoEl = document.getElementById("lockedRouteInfo");
+    if (status !== "OK") {
+      if (infoEl) infoEl.textContent = "🔒 Couldn't calculate the fixed ferry ⇄ camper leg — check your connection.";
+      return;
+    }
+    lockedRouteRenderer.setDirections(result);
+    const leg = result.routes[0].legs[0];
+    const miles = leg.distance.value / 1609.34;
+    const mins = Math.round(leg.duration.value / 60);
+    const fmt = m => { const h = Math.floor(m / 60), r = m % 60; return h > 0 ? `${h}h ${r}min` : `${r} min`; };
+    if (infoEl) {
+      infoEl.textContent = `🔒 Fixed leg — Liverpool Ferry ⇄ Hulland Ward: ${miles.toFixed(1)} mi / ${fmt(mins)} each way · ${(miles * 2).toFixed(1)} mi / ${fmt(mins * 2)} round trip (you'll drive this outbound AND on return)`;
+    }
   });
 }
 
@@ -641,6 +686,10 @@ function fitAllBounds() {
 
 /* ---------- DETAIL PANEL ---------- */
 
+function getNotesStore() {
+  try { return JSON.parse(safeStorageGet("beatherder-notes") || "{}"); } catch (e) { return {}; }
+}
+
 function showDetail(loc) {
   const s = CATEGORY_STYLE[loc.category];
   const card = document.getElementById("detailCard");
@@ -656,7 +705,7 @@ function showDetail(loc) {
     html += `<div class="section-label">Key facts</div><ul class="good">${loc.facts.map(f => `<li>${f}</li>`).join("")}</ul>`;
   }
   if (loc.walk) {
-    html += `<div class="walk-line">🚶 <b>Walking:</b> ${loc.walk}</div>`;
+    html += `<div class="section-label">📍 What's nearby (pubs, food, things to do, timings)</div><div class="walk-line">${loc.walk}</div>`;
   }
   if (loc.good && loc.good.length) {
     html += `<div class="section-label">👍 Good</div><ul class="good">${loc.good.map(g => `<li>${g}</li>`).join("")}</ul>`;
@@ -664,7 +713,30 @@ function showDetail(loc) {
   if (loc.bad && loc.bad.length) {
     html += `<div class="section-label">👎 Bad</div><ul class="bad">${loc.bad.map(b => `<li>${b}</li>`).join("")}</ul>`;
   }
+  html += `<div class="section-label">📝 Your notes</div>`;
+  html += `<textarea class="notes-box" id="notesBox" placeholder="Add anything you want to remember about this place...">${escapeHtml(getNotesStore()[loc.id] || "")}</textarea>`;
+  html += `<div class="notes-saved" id="notesSaved"></div>`;
   card.innerHTML = html;
+
+  const notesBox = document.getElementById("notesBox");
+  const savedIndicator = document.getElementById("notesSaved");
+  let notesSaveTimer = null;
+  notesBox.addEventListener("input", () => {
+    clearTimeout(notesSaveTimer);
+    notesSaveTimer = setTimeout(() => {
+      const notes = getNotesStore();
+      notes[loc.id] = notesBox.value;
+      safeStorageSet("beatherder-notes", JSON.stringify(notes));
+      savedIndicator.textContent = "Saved";
+      setTimeout(() => { if (savedIndicator) savedIndicator.textContent = ""; }, 1500);
+    }, 400);
+  });
+}
+
+function escapeHtml(str) {
+  const div = document.createElement("div");
+  div.textContent = str;
+  return div.innerHTML;
 }
 
 /* ---------- ROUTE PLANNER ---------- */
