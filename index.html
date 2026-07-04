@@ -375,7 +375,7 @@ window.gmapsLoadFailed = function() {
 <script>
 /* ---------- VERSION & UPDATE CHECK ---------- */
 /* Bump APP_VERSION and version.json together on every deploy — the banner below is how you know you're not looking at a stale cached copy */
-const APP_VERSION = "2026-07-02.10";
+const APP_VERSION = "2026-07-02.11";
 
 try {
   document.getElementById("versionBadge").textContent = "v" + APP_VERSION;
@@ -542,6 +542,7 @@ const LOCATIONS = [
   {
     id: "wharfedale", name: "Wharfedale CAMC, Threshfield", category: "frontrunner",
     lat: 54.0759, lon: -2.0186, address: "Threshfield, North Yorkshire",
+    video: "https://www.youtube.com/watch?v=tYgsBEnIwWg",
     fromHW: "115mi / 2h24", toBH: "23.3mi / 36min", rating: "4.7★ Google",
     walk: "2.1mi / 45 min walk into Grassington — further than it looks on paper, not a quick stroll.",
     good: ["Right next to Grassington — the charming independent-shops town from the saved YouTube video, exactly the vibe wanted", "Good reviews (4.7★)", "Short 36-min hop onward to the festival", "Promoted back from ruled-out on 2 Jul 2026 — the town won out over the campsite-photo concern"],
@@ -953,6 +954,7 @@ function showDetail(loc) {
   html += `<div class="links-row">`;
   if (website) html += `<a class="link-chip" href="${website}" target="_blank" rel="noopener">🔗 ${getHostname(website) || "Website"}</a>`;
   if (mapsUrl) html += `<a class="link-chip" href="${mapsUrl}" target="_blank" rel="noopener">📍 Google Maps</a>`;
+  if (loc.video) html += `<a class="link-chip" href="${loc.video}" target="_blank" rel="noopener" style="background:#fbe5e5;color:#c23b3b;">🎥 Watch video</a>`;
   html += `</div>`;
 
   if (loc.fromFerry) html += `<div class="stat-row"><span class="stat-label">From Liverpool Ferry Terminal</span><span class="stat-value">${loc.fromFerry}</span></div>`;
