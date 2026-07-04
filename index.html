@@ -194,12 +194,18 @@
     display: none; position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
     background: var(--amber); color: #fff; text-align: center; padding: 11px; font-weight: 700; font-size: 13.5px; cursor: pointer;
   }
+  #mapTooltip {
+    display: none; position: fixed; z-index: 1500; background: var(--ink); color: #fff;
+    padding: 5px 11px; border-radius: 6px; font-size: 12.5px; font-weight: 600; pointer-events: none;
+    white-space: nowrap; box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  }
 </style>
 </head>
 <body>
 
 <div id="updateBanner" onclick="location.reload()">🔄 A newer version of this app is live — tap to update</div>
 <div id="versionBadge"></div>
+<div id="mapTooltip"></div>
 
 <header>
   <div class="header-row">
@@ -375,7 +381,7 @@ window.gmapsLoadFailed = function() {
 <script>
 /* ---------- VERSION & UPDATE CHECK ---------- */
 /* Bump APP_VERSION and version.json together on every deploy — the banner below is how you know you're not looking at a stale cached copy */
-const APP_VERSION = "2026-07-02.11";
+const APP_VERSION = "2026-07-02.12";
 
 try {
   document.getElementById("versionBadge").textContent = "v" + APP_VERSION;
@@ -835,9 +841,25 @@ function placeMarker(loc, position) {
   marker.addListener("click", () => {
     if (routeMode) addRouteStop(loc); else showDetail(loc);
   });
+  marker.addListener("mouseover", (e) => showMapTooltip(loc.name, e));
+  marker.addListener("mouseout", hideMapTooltip);
   markerById[loc.id] = marker;
   allLatLngs.push(position);
   if (getHiddenStore()[loc.id]) marker.setMap(null);
+}
+
+function showMapTooltip(name, e) {
+  const tooltip = document.getElementById("mapTooltip");
+  tooltip.textContent = name;
+  tooltip.style.display = "block";
+  const domEvent = e && e.domEvent;
+  if (domEvent && typeof domEvent.clientX === "number") {
+    tooltip.style.left = (domEvent.clientX + 14) + "px";
+    tooltip.style.top = (domEvent.clientY - 14) + "px";
+  }
+}
+function hideMapTooltip() {
+  document.getElementById("mapTooltip").style.display = "none";
 }
 
 function fitAllBounds() {
