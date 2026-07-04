@@ -375,7 +375,7 @@ window.gmapsLoadFailed = function() {
 <script>
 /* ---------- VERSION & UPDATE CHECK ---------- */
 /* Bump APP_VERSION and version.json together on every deploy — the banner below is how you know you're not looking at a stale cached copy */
-const APP_VERSION = "2026-07-02.9";
+const APP_VERSION = "2026-07-02.10";
 
 try {
   document.getElementById("versionBadge").textContent = "v" + APP_VERSION;
@@ -774,13 +774,18 @@ function resolvePlaceExtras(loc, position) {
   });
 }
 
+/* Shows the actual domain in the label (not a generic "Website") so it's obvious which site a link goes to before or after clicking it */
+function getHostname(url) {
+  try { return new URL(url).hostname.replace(/^www\./, ""); } catch (e) { return null; }
+}
+
 /* Always returns a usable link — official website / Google's Place website / Google Maps place / Maps search — never a guessed domain */
 function getLocLink(loc) {
-  if (loc.website) return { url: loc.website, label: "🔗 Website" };
-  if (loc.placeWebsite) return { url: loc.placeWebsite, label: "🔗 Website" };
-  if (loc.placeMapsUrl) return { url: loc.placeMapsUrl, label: "📍 Maps" };
-  if (loc.resolvedLatLng) return { url: `https://www.google.com/maps/search/?api=1&query=${loc.resolvedLatLng.lat()},${loc.resolvedLatLng.lng()}`, label: "📍 Maps" };
-  return { url: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(loc.name + " " + loc.address)}`, label: "🔍 Search" };
+  if (loc.website) return { url: loc.website, label: `🔗 ${getHostname(loc.website) || "Website"}` };
+  if (loc.placeWebsite) return { url: loc.placeWebsite, label: `🔗 ${getHostname(loc.placeWebsite) || "Website"}` };
+  if (loc.placeMapsUrl) return { url: loc.placeMapsUrl, label: "📍 Google Maps" };
+  if (loc.resolvedLatLng) return { url: `https://www.google.com/maps/search/?api=1&query=${loc.resolvedLatLng.lat()},${loc.resolvedLatLng.lng()}`, label: "📍 Google Maps" };
+  return { url: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(loc.name + " " + loc.address)}`, label: "🔍 Search Google Maps" };
 }
 function renderLinkChip(loc) {
   const link = getLocLink(loc);
@@ -946,7 +951,7 @@ function showDetail(loc) {
   const website = loc.website || loc.placeWebsite;
   const mapsUrl = loc.placeMapsUrl || (loc.resolvedLatLng ? `https://www.google.com/maps/search/?api=1&query=${loc.resolvedLatLng.lat()},${loc.resolvedLatLng.lng()}` : null);
   html += `<div class="links-row">`;
-  if (website) html += `<a class="link-chip" href="${website}" target="_blank" rel="noopener">🔗 Website</a>`;
+  if (website) html += `<a class="link-chip" href="${website}" target="_blank" rel="noopener">🔗 ${getHostname(website) || "Website"}</a>`;
   if (mapsUrl) html += `<a class="link-chip" href="${mapsUrl}" target="_blank" rel="noopener">📍 Google Maps</a>`;
   html += `</div>`;
 
