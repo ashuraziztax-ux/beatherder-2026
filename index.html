@@ -387,7 +387,7 @@ window.gmapsLoadFailed = function() {
 <script>
 /* ---------- VERSION & UPDATE CHECK ---------- */
 /* Bump APP_VERSION and version.json together on every deploy — the banner below is how you know you're not looking at a stale cached copy */
-const APP_VERSION = "2026-07-02.17";
+const APP_VERSION = "2026-07-02.18";
 
 try {
   document.getElementById("versionBadge").textContent = "v" + APP_VERSION;
@@ -1004,6 +1004,9 @@ function applyRatingFilter() {
     const marker = markerById[loc.id];
     if (!marker) return;
     if (hidden[loc.id]) { marker.setMap(null); return; }
+    // Key bookings (ferry, camper collection, Calder Farm) and the festival itself are fixed reference points,
+    // not campsites being compared — always show them no matter what the rating filter is set to.
+    if (loc.category === "booking" || loc.category === "venue") { marker.setMap(map); return; }
     const rating = ratings[loc.id] || 0;
     const passesFilter = minRatingFilter === 0 || rating >= minRatingFilter;
     marker.setMap(passesFilter ? map : null);
