@@ -140,6 +140,7 @@
   .route-list .name { flex: 1; }
   .route-list .remove { cursor: pointer; color: var(--red); font-weight: 700; font-size: 15px; }
   .leg-time { font-size: 11.5px; color: #a39a89; text-align: center; padding: 2px 0 6px; font-weight: 600; line-height: 1.5; }
+  .fixed-leg-label { font-size: 12px; font-weight: 700; color: var(--purple-dark); background: #f6f1e6; border-radius: 8px; padding: 8px 10px; text-align: center; }
   .route-total { font-size: 14px; font-weight: 700; color: var(--purple-dark); border-top: 1px dashed var(--line); padding-top: 10px; margin-top: 10px; }
   .route-total .small { font-weight: 400; font-size: 11.5px; color: #a39a89; display: block; margin-top: 2px; }
 
@@ -381,7 +382,7 @@ window.gmapsLoadFailed = function() {
 <script>
 /* ---------- VERSION & UPDATE CHECK ---------- */
 /* Bump APP_VERSION and version.json together on every deploy — the banner below is how you know you're not looking at a stale cached copy */
-const APP_VERSION = "2026-07-02.14";
+const APP_VERSION = "2026-07-02.15";
 
 try {
   document.getElementById("versionBadge").textContent = "v" + APP_VERSION;
@@ -800,7 +801,10 @@ function renderLinkChip(loc) {
   return `<a class="link-chip small" href="${link.url}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${link.label}</a>`;
 }
 
-/* Ferry <-> Hulland Ward is a fixed leg driven both outbound and on return — always show it, independent of the ad-hoc route planner */
+/* Ferry <-> Hulland Ward is a fixed leg driven both outbound and on return — always show it, independent of the ad-hoc route planner.
+   It also always occupies "day 0" (the ferry day) and "leg 0" of the route planner — permanently, not something you click. */
+let lockedLegInfo = null;
+
 function maybeDrawLockedRoute() {
   const ferry = LOCATIONS.find(l => l.id === "ferry");
   const hw = LOCATIONS.find(l => l.id === "hulland-ward");
@@ -809,7 +813,8 @@ function maybeDrawLockedRoute() {
   directionsService.route({
     origin: ferry.resolvedLatLng,
     destination: hw.resolvedLatLng,
-    travelMode: google.maps.TravelMode.DRIVING
+    travelMode: google.maps.TravelMode.DRIVING,
+    unitSystem: google.maps.UnitSystem.IMPERIAL
   }, (result, status) => {
     const infoEl = document.getElementById("lockedRouteInfo");
     if (status !== "OK") {
@@ -829,6 +834,15 @@ function maybeDrawLockedRoute() {
     const ferryDepartMin = timeStringToMinutes(ferry.checkoutTime || DEFAULT_CHECKOUT);
     const hwArrivalMin = ferryDepartMin + Math.round(leg.duration.value / 60);
     hw.checkoutTime = minutesTo24hString(hwArrivalMin);
+
+    lockedLegInfo = {
+      distanceText: leg.distance.text,
+      durationText: leg.duration.text,
+      leaveLabel: minutesToTimeLabel(ferryDepartMin),
+      arriveLabel: minutesToTimeLabel(hwArrivalMin),
+      leaveDate: formatLegDate(0)
+    };
+    if (routeMode) renderRoutePanel();
     if (currentDetailId === "hulland-ward") showDetail(hw);
   });
 }
@@ -1062,6 +1076,7 @@ function wireRouteControls() {
 }
 
 function addRouteStop(loc) {
+  if (loc.id === "ferry" || loc.id === "hulland-ward") return; // these are already the permanent, fixed first leg — not clickable stops
   routeStops.push(loc);
   routeLegTimes = [];
   renderRoutePanel();
@@ -1072,7 +1087,7 @@ function removeRouteStop(index) {
   routeStops.splice(index, 1);
   routeLegTimes = [];
   renderRoutePanel();
-  if (routeStops.length >= 2) calculateRoute();
+  if (routeStops.length >= 1) calculateRoute();
   else directionsRenderer.setDirections({ routes: [] });
 }
 
@@ -1101,26 +1116,44 @@ function departureReasonLabel(loc) {
   return "checkout";
 }
 
+/* Day 0 = Mon 13 Jul 2026, the ferry day. Each leg after Hulland Ward represents the next overnight, so leg index = days after the ferry. */
+const TRIP_START_DATE = new Date(2026, 6, 13);
+const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+function formatLegDate(dayOffset) {
+  const d = new Date(TRIP_START_DATE);
+  d.setDate(d.getDate() + dayOffset);
+  return `${DAY_NAMES[d.getDay()]} ${d.getDate()} ${MONTH_NAMES[d.getMonth()]}`;
+}
+
 function renderRoutePanel() {
   const card = document.getElementById("detailCard");
   let html = `<h3 style="margin-top:0;">🧭 Route planner</h3>`;
+
+  // Permanent first leg — boat to camper collection, always shown, never clicked
+  html += `<div class="fixed-leg-label">🚢 Liverpool Ferry → 🚐 Hulland Ward (camper collection)</div>`;
+  if (lockedLegInfo) {
+    html += `<div class="leg-time">🕐 Leave ~${lockedLegInfo.leaveLabel} (ferry arrival), ${lockedLegInfo.leaveDate} → Arrive ~${lockedLegInfo.arriveLabel}<br><span style="font-weight:400;">${lockedLegInfo.distanceText} · ${lockedLegInfo.durationText}</span></div>`;
+  } else {
+    html += `<div class="leg-time">Calculating the fixed ferry ⇄ camper leg…</div>`;
+  }
+
   if (routeStops.length === 0) {
-    html += `<div class="detail-empty">Click pins on the map, in order, to build a route. Each stop is treated as an overnight — departure times use checkout time (noon if not known).</div>`;
+    html += `<div class="detail-empty">Now click your first stop on the map — that'll be night one.</div>`;
   } else {
     html += `<ul class="route-list">`;
     routeStops.forEach((loc, i) => {
-      html += `<li><span class="num">${i + 1}</span><span class="name">${loc.name}</span><span class="remove" onclick="removeRouteStop(${i})">✕</span></li>`;
-      if (i < routeStops.length - 1) {
-        const leg = routeLegTimes[i];
-        if (leg) {
-          html += `<div class="leg-time">🕐 Leave ~${leg.leaveLabel} (${departureReasonLabel(loc)}) → Arrive ~${leg.arriveLabel}<br><span style="font-weight:400;">${leg.distanceText} · ${leg.durationText}</span></div>`;
-        } else {
-          html += `<div class="leg-time">↓ calculating…</div>`;
-        }
+      const leg = routeLegTimes[i];
+      if (leg) {
+        html += `<div class="leg-time">🕐 Leave ~${leg.leaveLabel} (${leg.fromLabel}), ${leg.leaveDate} → Arrive ~${leg.arriveLabel}<br><span style="font-weight:400;">${leg.distanceText} · ${leg.durationText}</span></div>`;
+      } else {
+        html += `<div class="leg-time">↓ calculating…</div>`;
       }
+      const nightTag = i === 0 ? ` <span style="font-weight:400;color:#a39a89;">(night 1)</span>` : "";
+      html += `<li><span class="num">${i + 1}</span><span class="name">${loc.name}${nightTag}</span><span class="remove" onclick="removeRouteStop(${i})">✕</span></li>`;
     });
     html += `</ul>`;
-    html += `<div id="routeResult" class="route-total">${routeStops.length < 2 ? "Add at least 2 stops to calculate driving time." : "Calculating…"}</div>`;
+    html += `<div id="routeResult" class="route-total">Calculating…</div>`;
   }
   card.innerHTML = html;
 }
@@ -1128,11 +1161,15 @@ function renderRoutePanel() {
 let routeRequestId = 0;
 
 function calculateRoute() {
-  if (routeStops.length < 2) return;
+  const hw = LOCATIONS.find(l => l.id === "hulland-ward");
+  if (routeStops.length < 1 || !hw.resolvedLatLng) return;
   const thisRequestId = ++routeRequestId;
-  const origin = routeStops[0].resolvedLatLng;
+
+  // Hulland Ward is always the implicit starting point — you're never shown a route that doesn't start with collecting the camper
+  const chainLocs = [hw, ...routeStops.slice(0, -1)]; // departure point for each leg
+  const origin = hw.resolvedLatLng;
   const destination = routeStops[routeStops.length - 1].resolvedLatLng;
-  const waypoints = routeStops.slice(1, -1).map(l => ({ location: l.resolvedLatLng, stopover: true }));
+  const waypoints = routeStops.slice(0, -1).map(l => ({ location: l.resolvedLatLng, stopover: true }));
 
   directionsService.route({
     origin, destination, waypoints,
@@ -1149,14 +1186,16 @@ function calculateRoute() {
     directionsRenderer.setDirections(result);
     const legs = result.routes[0].legs;
     routeLegTimes = legs.map((l, i) => {
-      const fromLoc = routeStops[i];
+      const fromLoc = chainLocs[i];
       const checkoutMin = timeStringToMinutes(fromLoc.checkoutTime || DEFAULT_CHECKOUT);
       const arriveMin = checkoutMin + (l.duration.value / 60);
       return {
         distanceText: l.distance.text,
         durationText: l.duration.text,
         leaveLabel: minutesToTimeLabel(checkoutMin),
-        arriveLabel: minutesToTimeLabel(arriveMin)
+        arriveLabel: minutesToTimeLabel(arriveMin),
+        leaveDate: formatLegDate(i), // leg i departs from chainLocs[i]; chainLocs[0]=Hulland Ward leaves same day as ferry (day 0), chainLocs[1]=night-1 stop leaves the day after (day 1), etc.
+        fromLabel: departureReasonLabel(fromLoc)
       };
     });
     renderRoutePanel();
@@ -1169,7 +1208,7 @@ function calculateRoute() {
     const timeStr = h > 0 ? `${h}h ${m}min` : `${m} min`;
     const freshResultEl = document.getElementById("routeResult");
     if (freshResultEl) {
-      freshResultEl.innerHTML = `${miles} miles · ${timeStr} total driving<span class="small">${routeStops.length} stops, in the order clicked · via Google Directions (real roads)</span>`;
+      freshResultEl.innerHTML = `${miles} miles · ${timeStr} total driving<span class="small">from Hulland Ward · ${routeStops.length} stop${routeStops.length === 1 ? "" : "s"} clicked · via Google Directions (real roads)</span>`;
     }
   });
 }
