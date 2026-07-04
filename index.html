@@ -238,6 +238,11 @@
       </div>
       <div class="note" id="modeNote">Click any pin for full details — distances, walking info, and the good &amp; bad of each place. Toggle "Plan a Route" to instead click pins in order and build up a driving-time total.</div>
       <div class="note" id="lockedRouteInfo" style="font-weight:600;color:var(--purple-dark);margin-top:6px;">🔒 Calculating the fixed ferry ⇄ camper leg…</div>
+      <div class="note" style="margin-top:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span id="ratingFilterLabel">Showing all pins</span>
+        <span>— filter by your rating:</span>
+        <span id="ratingFilterWidget" class="star-widget"></span>
+      </div>
     </div>
     <div class="map-layout">
       <div id="map"></div>
@@ -382,7 +387,7 @@ window.gmapsLoadFailed = function() {
 <script>
 /* ---------- VERSION & UPDATE CHECK ---------- */
 /* Bump APP_VERSION and version.json together on every deploy — the banner below is how you know you're not looking at a stale cached copy */
-const APP_VERSION = "2026-07-02.15";
+const APP_VERSION = "2026-07-02.16";
 
 try {
   document.getElementById("versionBadge").textContent = "v" + APP_VERSION;
@@ -699,6 +704,7 @@ function initApp() {
   document.getElementById("fitAll").addEventListener("click", fitAllBounds);
   document.getElementById("restoreHidden").addEventListener("click", restoreAllHidden);
   updateHiddenButton();
+  document.getElementById("ratingFilterWidget").innerHTML = renderRatingFilterWidget();
 
   wireRouteControls();
 }
@@ -838,10 +844,13 @@ function maybeDrawLockedRoute() {
     lockedLegInfo = {
       distanceText: leg.distance.text,
       durationText: leg.duration.text,
+      distanceMeters: leg.distance.value,
+      durationSeconds: leg.duration.value,
       leaveLabel: minutesToTimeLabel(ferryDepartMin),
       arriveLabel: minutesToTimeLabel(hwArrivalMin),
       leaveDate: formatLegDate(0)
     };
+    if (routeStops.length >= 1) calculateRoute(); // refresh the total now that the boat leg is countable
     if (routeMode) renderRoutePanel();
     if (currentDetailId === "hulland-ward") showDetail(hw);
   });
@@ -867,6 +876,7 @@ function placeMarker(loc, position) {
   markerById[loc.id] = marker;
   allLatLngs.push(position);
   if (getHiddenStore()[loc.id]) marker.setMap(null);
+  else if (minRatingFilter > 0) applyRatingFilter();
 }
 
 function showMapTooltip(name, e) {
@@ -916,6 +926,7 @@ function setRating(id, stars) {
   safeStorageSet("beatherder-ratings", JSON.stringify(ratings));
   markViewed(id);
   renderCampsiteTable();
+  if (minRatingFilter > 0) applyRatingFilter();
   if (currentDetailId === id) {
     const loc = LOCATIONS.find(l => l.id === id);
     if (loc) showDetail(loc);
@@ -959,9 +970,41 @@ function hidePin(id) {
 }
 function restoreAllHidden() {
   safeStorageSet("beatherder-hidden", "{}");
-  LOCATIONS.forEach(loc => { if (markerById[loc.id]) markerById[loc.id].setMap(map); });
+  applyRatingFilter(); // shows previously-hidden markers, but still respects any active rating filter
   updateHiddenButton();
   renderCampsiteTable();
+}
+
+/* ---------- MAP FILTER BY YOUR RATING ---------- */
+
+let minRatingFilter = 0; // 0 = no filter, show everything
+
+function renderRatingFilterWidget() {
+  let html = "";
+  for (let i = 1; i <= 5; i++) {
+    html += `<span class="star" onclick="setRatingFilter(${i})" title="Show ${i}★ and above only" style="${i <= minRatingFilter ? "color:#e8873c;" : ""}">★</span>`;
+  }
+  return html;
+}
+function setRatingFilter(n) {
+  minRatingFilter = (minRatingFilter === n) ? 0 : n;
+  const widget = document.getElementById("ratingFilterWidget");
+  if (widget) widget.innerHTML = renderRatingFilterWidget();
+  const label = document.getElementById("ratingFilterLabel");
+  if (label) label.textContent = minRatingFilter === 0 ? "Showing all pins" : `Showing ${minRatingFilter}★ and above only`;
+  applyRatingFilter();
+}
+function applyRatingFilter() {
+  const ratings = getRatingsStore();
+  const hidden = getHiddenStore();
+  MAP_LOCATIONS.forEach(loc => {
+    const marker = markerById[loc.id];
+    if (!marker) return;
+    if (hidden[loc.id]) { marker.setMap(null); return; }
+    const rating = ratings[loc.id] || 0;
+    const passesFilter = minRatingFilter === 0 || rating >= minRatingFilter;
+    marker.setMap(passesFilter ? map : null);
+  });
 }
 
 function openOnMap(id) {
@@ -1200,15 +1243,18 @@ function calculateRoute() {
     });
     renderRoutePanel();
 
-    const totalMeters = legs.reduce((sum, l) => sum + l.distance.value, 0);
-    const totalSeconds = legs.reduce((sum, l) => sum + l.duration.value, 0);
+    const boatLegMeters = lockedLegInfo ? lockedLegInfo.distanceMeters : 0;
+    const boatLegSeconds = lockedLegInfo ? lockedLegInfo.durationSeconds : 0;
+    const totalMeters = boatLegMeters + legs.reduce((sum, l) => sum + l.distance.value, 0);
+    const totalSeconds = boatLegSeconds + legs.reduce((sum, l) => sum + l.duration.value, 0);
     const miles = (totalMeters / 1609.34).toFixed(1);
     const mins = Math.round(totalSeconds / 60);
     const h = Math.floor(mins / 60), m = mins % 60;
     const timeStr = h > 0 ? `${h}h ${m}min` : `${m} min`;
+    const boatNote = lockedLegInfo ? "" : " (boat→camper leg not counted yet — still calculating)";
     const freshResultEl = document.getElementById("routeResult");
     if (freshResultEl) {
-      freshResultEl.innerHTML = `${miles} miles · ${timeStr} total driving<span class="small">from Hulland Ward · ${routeStops.length} stop${routeStops.length === 1 ? "" : "s"} clicked · via Google Directions (real roads)</span>`;
+      freshResultEl.innerHTML = `${miles} miles · ${timeStr} total driving<span class="small">from the ferry${boatNote} · ${routeStops.length} stop${routeStops.length === 1 ? "" : "s"} clicked · via Google Directions (real roads)</span>`;
     }
   });
 }
