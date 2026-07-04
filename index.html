@@ -281,7 +281,7 @@
     <div class="card">
       <h2>Free camping windows</h2>
       <p class="fact"><b>Pre-festival (Mon 13 – Thu 16 Jul):</b> collect the camper same day as the ferry, then free until the festival — roughly 2–3 free nights (13th, 14th, 15th).</p>
-      <p class="fact"><b>Post-festival (Tue 21 Jul):</b> one free night between the Calder Farm checkout and the Wed 22 Jul ferry — ideally positioned toward Hulland Ward to set up the return drive.</p>
+      <p class="fact"><b>Post-festival (Tue 21 Jul):</b> ✅ Booked — Lickpenny (Matlock Club Campsite), 1 night, arriving 13:00–14:00, departing 22 Jul. Closest campsite to Hulland Ward, perfectly positioned for the return drive before the Wed 22 Jul ferry.</p>
       <p class="fact"><b>Revised recommendation:</b> use the Peak District for both free windows — it sits right on the doorstep of Hulland Ward with zero detour, unlike the Lake District (2h25+ one-way from the actual camper base).</p>
     </div>
   </div>
@@ -406,7 +406,7 @@ window.gmapsLoadFailed = function() {
 <script>
 /* ---------- VERSION & UPDATE CHECK ---------- */
 /* Bump APP_VERSION and version.json together on every deploy — the banner below is how you know you're not looking at a stale cached copy */
-const APP_VERSION = "2026-07-05.3";
+const APP_VERSION = "2026-07-05.4";
 
 try {
   document.getElementById("versionBadge").textContent = "v" + APP_VERSION;
@@ -517,13 +517,15 @@ const LOCATIONS = [
     bad: ["\"A bit posh\" — doesn't match the preference for something in the middle", "Pubs are a drive, not a walk"]
   },
   {
-    id: "lickpenny", name: "Lickpenny, Matlock", category: "considered",
-    lat: 53.1200, lon: -1.5600, address: "Tansley, nr Matlock, Derbyshire",
+    id: "lickpenny", name: "Lickpenny (Matlock Club Campsite)", category: "considered",
+    lat: 53.1200, lon: -1.5600, address: "Lickpenny Lane, Matlock, Derbyshire, DE4 5PW",
     video: "https://www.youtube.com/watch?v=psCX9KXsZas",
     fromHW: "13.8mi / 28min", toBH: "not checked", rating: "4.6★ Google (716 reviews)",
     walk: "Not confirmed — gateway to Matlock Bath (cable car, promenade, cafes).",
-    good: ["Closest campsite of any option to Hulland Ward", "Gateway to quirky Matlock Bath"],
-    bad: ["Distance onward to Beat-Herder not checked", "Lower profile than Hartington Hills, less researched"]
+    defaultBooked: true,
+    defaultBookingDetails: "✅ BOOKED — the post-festival free night (was \"TBD\").\nArriving 21 Jul 2026, check-in 13:00–14:00. Departing 22 Jul 2026. 1 night.\n2 adults, campervan, Serviced Pitch With Awning.\nNo offers/extras/special requests on the booking.",
+    good: ["Closest campsite of any option to Hulland Ward — sets up the return drive perfectly", "Gateway to quirky Matlock Bath", "Booked for exactly the right night — 21 Jul, between Calder Farm and the return ferry"],
+    bad: ["Distance onward to Beat-Herder not checked (not relevant now — this is the post-festival stop, not pre-festival)"]
   },
   {
     id: "greenhills", name: "Greenhills, Bakewell", category: "considered",
@@ -671,7 +673,7 @@ const ITINERARY = [
   { day: "Thu–Sun", date: "16–19 Jul", plan: "Beat-Herder Festival, Dockber Farm, Sawley, Lancashire BB7 4LH.", festival: true },
   { day: "Mon", date: "20 Jul, ~5pm", plan: "Leave festival → Calder Farm, Clitheroe (7 min away).", festival: false },
   { day: "Mon–Tue", date: "20–21 Jul", plan: "Stay at Calder Farm (cabin, number TBC).", festival: false },
-  { day: "Tue", date: "21 Jul", plan: "Checkout (time TBC) → one free night, location TBD, ideally positioned toward Hulland Ward.", festival: false },
+  { day: "Tue", date: "21 Jul", plan: "Calder Farm checkout (time TBC) → drive to Lickpenny, Matlock (BOOKED — arrive 13:00-14:00, 1 night, Serviced Pitch With Awning) — closest campsite to Hulland Ward, sets up the return drive.", festival: false },
   { day: "Wed", date: "22 Jul", plan: "Drive to Hulland Ward, return \"Eva\", collect car → drive ~2h to Liverpool → ferry check-in opens 16:45, closes 18:30, departs 19:15, arrives Douglas 22:00.", festival: false }
 ];
 
@@ -1032,14 +1034,23 @@ function getBookedStore() {
 function getBookingDetailsStore() {
   try { return JSON.parse(safeStorageGet("beatherder-booking-details") || "{}"); } catch (e) { return {}; }
 }
+/* A place can be booked by default (a real confirmed booking baked into the data) — the stored per-browser value overrides that once the user actually clicks the toggle */
+function isLocBooked(loc) {
+  const stored = getBookedStore()[loc.id];
+  return stored !== undefined ? stored : !!loc.defaultBooked;
+}
+function getBookingDetailsForLoc(loc) {
+  const stored = getBookingDetailsStore()[loc.id];
+  return stored !== undefined ? stored : (loc.defaultBookingDetails || "");
+}
 function toggleBooked(id) {
+  const loc = LOCATIONS.find(l => l.id === id);
   const booked = getBookedStore();
-  booked[id] = !booked[id];
+  booked[id] = !isLocBooked(loc);
   safeStorageSet("beatherder-booked", JSON.stringify(booked));
   markViewed(id);
   applyRatingFilter();
   renderCampsiteTable();
-  const loc = LOCATIONS.find(l => l.id === id);
   if (loc && currentDetailId === id) showDetail(loc);
 }
 function toggleOnlyBooked() {
@@ -1067,7 +1078,6 @@ function setRatingFilter(n) {
 function applyRatingFilter() {
   const ratings = getRatingsStore();
   const hidden = getHiddenStore();
-  const booked = getBookedStore();
   MAP_LOCATIONS.forEach(loc => {
     const marker = markerById[loc.id];
     if (!marker) return;
@@ -1075,7 +1085,7 @@ function applyRatingFilter() {
     // Key bookings (ferry, camper collection, Calder Farm) and the festival itself are fixed reference points,
     // not campsites being compared — always show them no matter what the rating filter or "only booked" mode is set to.
     if (loc.category === "booking" || loc.category === "venue") { marker.setMap(map); return; }
-    if (onlyShowBooked && !booked[loc.id]) { marker.setMap(null); return; }
+    if (onlyShowBooked && !isLocBooked(loc)) { marker.setMap(null); return; }
     const rating = ratings[loc.id] || 0;
     const passesFilter = minRatingFilter === 0 || rating >= minRatingFilter;
     marker.setMap(passesFilter ? map : null);
@@ -1163,14 +1173,14 @@ function showDetail(loc) {
   html += `<h3 style="margin-top:0;">${loc.name}</h3>`;
   html += `<div style="font-size:12.5px;color:#8a8378;margin-bottom:8px;">${loc.address}</div>`;
   html += `<div class="section-label">⭐ Your rating</div>${renderStarWidget(loc.id)}`;
-  const isBooked = getBookedStore()[loc.id];
+  const isBooked = isLocBooked(loc);
   html += `<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;">`;
   html += `<button class="btn" style="background:${isBooked ? "#1f8a4c" : "#8a8378"};font-size:11.5px;padding:6px 12px;" onclick="toggleBooked('${loc.id}')">${isBooked ? "✅ Booked — click to un-book" : "☐ Mark as Booked"}</button>`;
   html += `<button class="btn" style="background:#c23b3b;font-size:11.5px;padding:6px 12px;" onclick="hidePin('${loc.id}')">🗑️ Remove pin from map</button>`;
   html += `</div>`;
   if (isBooked) {
     html += `<div class="section-label">📋 Booking details</div>`;
-    html += `<textarea class="notes-box" id="bookingBox" placeholder="Dates, confirmation number, deposit paid, contact details...">${escapeHtml(getBookingDetailsStore()[loc.id] || "")}</textarea>`;
+    html += `<textarea class="notes-box" id="bookingBox" placeholder="Dates, confirmation number, deposit paid, contact details...">${escapeHtml(getBookingDetailsForLoc(loc))}</textarea>`;
     html += `<div class="notes-saved" id="bookingSaved"></div>`;
   }
 
@@ -1449,19 +1459,19 @@ function renderCampsiteTable() {
   const campBody = document.getElementById("campsiteBody");
   if (!campBody) return;
   const viewed = getViewedStore();
-  const booked = getBookedStore();
   campBody.innerHTML = "";
   LOCATIONS.filter(l => ["frontrunner", "considered", "ruledout", "maybe"].includes(l.category)).forEach(loc => {
     const tr = document.createElement("tr");
     if (loc.category === "ruledout") tr.classList.add("row-ruledout");
-    if (booked[loc.id]) tr.classList.add("row-booked");
+    const bookedNow = isLocBooked(loc);
+    if (bookedNow) tr.classList.add("row-booked");
     const seenBadge = viewed[loc.id]
       ? `<span class="seen-badge" title="You've looked at this one">✅</span>`
       : `<span class="seen-badge" title="Not looked at yet" style="opacity:.3;">👁</span>`;
     const hidden = getHiddenStore();
     if (hidden[loc.id]) tr.classList.add("row-hidden");
     const hiddenTag = hidden[loc.id] ? `<span class="status-tag" style="background:#eee;color:#999;margin-left:5px;">🚫 hidden from map</span>` : "";
-    const bookedTag = booked[loc.id] ? `<span class="status-tag" style="background:#e8f6ee;color:#1f8a4c;margin-left:5px;">✅ BOOKED</span>` : "";
+    const bookedTag = bookedNow ? `<span class="status-tag" style="background:#e8f6ee;color:#1f8a4c;margin-left:5px;">✅ BOOKED</span>` : "";
     tr.innerHTML = `
       <td class="site-cell" onclick="openOnMap('${loc.id}')">${seenBadge}<b class="site-name">${loc.name}</b>${hiddenTag}${bookedTag}</td>
       <td><span class="status-tag ${loc.category}">${CATEGORY_STYLE[loc.category].label}</span></td>
