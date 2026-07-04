@@ -235,6 +235,7 @@
         <button class="btn secondary" id="routeClear">Clear route</button>
         <button class="btn secondary" id="fitAll">Reset view</button>
         <button class="btn secondary" id="restoreHidden" style="display:none;">↩ Restore hidden pins</button>
+        <button class="btn secondary" id="attractionsToggle" onclick="toggleAttractions()">🥾 Show things to do (Dalesbridge area)</button>
       </div>
       <div class="note" id="modeNote">Click any pin for full details — distances, walking info, and the good &amp; bad of each place. Toggle "Plan a Route" to instead click pins in order and build up a driving-time total.</div>
       <div class="note" id="lockedRouteInfo" style="font-weight:600;color:var(--purple-dark);margin-top:6px;">🔒 Calculating the fixed ferry ⇄ camper leg…</div>
@@ -258,6 +259,7 @@
             <div class="legend-item"><span class="dot" style="background:#15803d"></span> Campsite — front-runner</div>
             <div class="legend-item"><span class="dot" style="background:#d97706"></span> Campsite — considered</div>
             <div class="legend-item"><span class="dot" style="background:#0891b2"></span> Lake District (maybe)</div>
+            <div class="legend-item"><span class="dot" style="background:#0d9488"></span> Thing to do (Dalesbridge area)</div>
           </div>
           <div class="note">Pin locations are geocoded live from each address via the Google Maps Geocoding API — accurate to the real building/area, not an estimate. Ruled-out sites are left off the map (still listed on the Campsites tab for reference).</div>
         </div>
@@ -387,7 +389,7 @@ window.gmapsLoadFailed = function() {
 <script>
 /* ---------- VERSION & UPDATE CHECK ---------- */
 /* Bump APP_VERSION and version.json together on every deploy — the banner below is how you know you're not looking at a stale cached copy */
-const APP_VERSION = "2026-07-02.18";
+const APP_VERSION = "2026-07-02.19";
 
 try {
   document.getElementById("versionBadge").textContent = "v" + APP_VERSION;
@@ -619,8 +621,30 @@ const CATEGORY_STYLE = {
   frontrunner: { color: "#15803d", icon: "🏕️", label: "Front-runner" },
   considered:  { color: "#d97706", icon: "🏕️", label: "Considered" },
   ruledout:    { color: "#9ca3af", icon: "🚫", label: "Ruled out" },
-  maybe:       { color: "#0891b2", icon: "🏔️", label: "Lake District (maybe)" }
+  maybe:       { color: "#0891b2", icon: "🏔️", label: "Lake District (maybe)" },
+  attraction:  { color: "#0d9488", icon: "🥾", label: "Thing to do (Dalesbridge area)" }
 };
+
+/* Things to do near Dalesbridge, sourced from https://www.dalesbridge.co.uk/what-to-do — loaded on demand, not part of the core trip data */
+const ATTRACTIONS = [
+  { id: "attr-ingleborough-cave", name: "Ingleborough Cave & Nature Trail", category: "attraction", address: "Ingleborough Cave, Clapham, North Yorkshire", website: "https://www.dalesbridge.co.uk/what-to-do", facts: ["Show cave and nature trail — cave exploration and hiking"] },
+  { id: "attr-austwick", name: "Austwick village", category: "attraction", address: "Austwick, Settle, North Yorkshire", website: "https://www.dalesbridge.co.uk/what-to-do", facts: ["Village with a shop, pub, and park — walkable from Dalesbridge"] },
+  { id: "attr-norber", name: "Norber Erratics", category: "attraction", address: "Norber, Austwick, North Yorkshire", website: "https://www.dalesbridge.co.uk/what-to-do", facts: ["Geological rock formation, accessible from the site"] },
+  { id: "attr-white-scar", name: "White Scar Cave", category: "attraction", address: "White Scar Cave, Ingleton, North Yorkshire", website: "https://www.dalesbridge.co.uk/what-to-do", facts: ["Underground show cave system"] },
+  { id: "attr-ingleton-falls", name: "Ingleton Waterfalls Trail", category: "attraction", address: "Ingleton, North Yorkshire", website: "https://www.dalesbridge.co.uk/what-to-do", facts: ["Walking route past multiple waterfalls"] },
+  { id: "attr-malham-cove", name: "Malham Cove", category: "attraction", address: "Malham, North Yorkshire", website: "https://www.dalesbridge.co.uk/what-to-do", facts: ["Limestone cliff formation, popular for climbing"] },
+  { id: "attr-gisburn-forest", name: "Gisburn Forest", category: "attraction", address: "Gisburn Forest, Lancashire", website: "https://www.dalesbridge.co.uk/what-to-do", facts: ["Mountain biking / cycling trails"] },
+  { id: "attr-gaping-gill", name: "Gaping Gill", category: "attraction", address: "Gaping Gill, Clapham, North Yorkshire", website: "https://www.dalesbridge.co.uk/what-to-do", facts: ["Pothole/sinkhole — underground exploration"] },
+  { id: "attr-ribblehead", name: "Ribblehead Viaduct", category: "attraction", address: "Ribblehead, North Yorkshire", website: "https://www.dalesbridge.co.uk/what-to-do", facts: ["Historic railway viaduct, popular hiking destination"] },
+  { id: "attr-clapham", name: "Clapham village", category: "attraction", address: "Clapham, North Yorkshire", website: "https://www.dalesbridge.co.uk/what-to-do", facts: ["Rural village, accessible by walking route"] },
+  { id: "attr-three-peaks", name: "Yorkshire Three Peaks", category: "attraction", address: "Horton in Ribblesdale, North Yorkshire", website: "https://www.dalesbridge.co.uk/what-to-do", facts: ["Challenge walk covering three mountain summits (Whernside, Ingleborough, Pen-y-ghent)"] },
+  { id: "attr-wensleydale-creamery", name: "Wensleydale Creamery", category: "attraction", address: "Hawes, North Yorkshire", website: "https://www.dalesbridge.co.uk/what-to-do", facts: ["Cheese production facility and tasting venue"] },
+  { id: "attr-caving", name: "Caving / Potholing", category: "attraction", address: "Austwick, North Yorkshire", website: "https://www.dalesbridge.co.uk/what-to-do", facts: ["Guided underground cave systems near Dalesbridge — general activity, not one fixed spot"] },
+  { id: "attr-climbing", name: "Rock Climbing & Abseiling", category: "attraction", address: "Austwick, North Yorkshire", website: "https://www.dalesbridge.co.uk/what-to-do", facts: ["Sport climbing on local limestone crags — general activity, not one fixed spot"] },
+  { id: "attr-mtb", name: "Mountain Biking Trails", category: "attraction", address: "Austwick, North Yorkshire", website: "https://www.dalesbridge.co.uk/what-to-do", facts: ["Off-road cycling routes near Dalesbridge — general activity, not one fixed spot"] },
+  { id: "attr-dales-walks", name: "Yorkshire Dales Walking Trails", category: "attraction", address: "Austwick, North Yorkshire", website: "https://www.dalesbridge.co.uk/what-to-do", facts: ["General fell-walking network around the Dales — general activity, not one fixed spot"] },
+  { id: "attr-fell-running", name: "Fell Running", category: "attraction", address: "Austwick, North Yorkshire", website: "https://www.dalesbridge.co.uk/what-to-do", facts: ["Trail running in the surrounding hills and valleys — general activity, not one fixed spot"] }
+];
 
 const ITINERARY = [
   { day: "Mon", date: "13 Jul", plan: "Ferry Douglas → Liverpool, dep 07:15 arr 10:00. Drive ~2h to Hulland Ward to collect \"Eva\", leave own car there. Free from early/mid-afternoon.", festival: false },
@@ -1011,6 +1035,66 @@ function applyRatingFilter() {
     const passesFilter = minRatingFilter === 0 || rating >= minRatingFilter;
     marker.setMap(passesFilter ? map : null);
   });
+}
+
+/* ---------- THINGS TO DO (loaded on demand, not part of the core trip data) ---------- */
+
+let attractionsLoaded = false;
+let attractionsVisible = false;
+const attractionMarkers = [];
+
+function toggleAttractions() {
+  const btn = document.getElementById("attractionsToggle");
+  if (!attractionsLoaded) {
+    btn.textContent = "🥾 Loading things to do…";
+    btn.disabled = true;
+    const bounds = new google.maps.LatLngBounds();
+    let finished = false;
+    // Geocoder callbacks can occasionally never fire at all (not even with an error status) — never let the button hang forever waiting for stragglers
+    const finish = () => {
+      if (finished) return;
+      finished = true;
+      attractionsLoaded = true;
+      attractionsVisible = true;
+      btn.disabled = false;
+      btn.textContent = attractionMarkers.length
+        ? "🥾 Hide things to do (Dalesbridge area)"
+        : "🥾 Couldn't load things to do — try again";
+      if (!attractionMarkers.length) attractionsLoaded = false; // allow retry if nothing loaded at all
+      if (!bounds.isEmpty()) map.fitBounds(bounds);
+    };
+    const safetyTimeout = setTimeout(finish, 15000);
+    let remaining = ATTRACTIONS.length;
+    ATTRACTIONS.forEach(loc => {
+      geocoder.geocode({ address: `${loc.address}, UK` }, (results, status) => {
+        if (status === "OK" && results[0]) {
+          const position = results[0].geometry.location;
+          loc.resolvedLatLng = position;
+          const marker = new google.maps.Marker({
+            position, map, title: loc.name,
+            icon: {
+              path: google.maps.SymbolPath.CIRCLE,
+              fillColor: CATEGORY_STYLE.attraction.color, fillOpacity: 1,
+              strokeColor: "#ffffff", strokeWeight: 2, scale: 12
+            },
+            label: { text: CATEGORY_STYLE.attraction.icon, fontSize: "12px" }
+          });
+          marker.addListener("click", () => showDetail(loc));
+          marker.addListener("mouseover", (e) => showMapTooltip(loc.name, e));
+          marker.addListener("mouseout", hideMapTooltip);
+          markerById[loc.id] = marker;
+          attractionMarkers.push(marker);
+          bounds.extend(position);
+        }
+        remaining--;
+        if (remaining === 0) { clearTimeout(safetyTimeout); finish(); }
+      });
+    });
+  } else {
+    attractionsVisible = !attractionsVisible;
+    attractionMarkers.forEach(m => m.setMap(attractionsVisible ? map : null));
+    btn.textContent = attractionsVisible ? "🥾 Hide things to do (Dalesbridge area)" : "🥾 Show things to do (Dalesbridge area)";
+  }
 }
 
 function openOnMap(id) {
