@@ -387,7 +387,7 @@ window.gmapsLoadFailed = function() {
 <script>
 /* ---------- VERSION & UPDATE CHECK ---------- */
 /* Bump APP_VERSION and version.json together on every deploy — the banner below is how you know you're not looking at a stale cached copy */
-const APP_VERSION = "2026-07-02.16";
+const APP_VERSION = "2026-07-02.17";
 
 try {
   document.getElementById("versionBadge").textContent = "v" + APP_VERSION;
@@ -836,10 +836,12 @@ function maybeDrawLockedRoute() {
       infoEl.textContent = `🔒 Fixed leg — Liverpool Ferry ⇄ Hulland Ward: ${miles.toFixed(1)} mi / ${fmt(mins)} each way · ${(miles * 2).toFixed(1)} mi / ${fmt(mins * 2)} round trip (you'll drive this outbound AND on return)`;
     }
     // Hulland Ward isn't an overnight stop either — you collect the camper and drive on the same day.
-    // Its "departure time" for the route planner is the real arrival time off this fixed leg, not a checkout guess.
+    // Its "departure time" for the route planner is the real arrival time off this fixed leg, plus an hour to actually collect "Eva" (paperwork, walkaround, etc.) — not a checkout guess.
+    const HULLAND_WARD_COLLECTION_MINUTES = 60;
     const ferryDepartMin = timeStringToMinutes(ferry.checkoutTime || DEFAULT_CHECKOUT);
     const hwArrivalMin = ferryDepartMin + Math.round(leg.duration.value / 60);
-    hw.checkoutTime = minutesTo24hString(hwArrivalMin);
+    const hwDepartMin = hwArrivalMin + HULLAND_WARD_COLLECTION_MINUTES;
+    hw.checkoutTime = minutesTo24hString(hwDepartMin);
 
     lockedLegInfo = {
       distanceText: leg.distance.text,
@@ -848,6 +850,7 @@ function maybeDrawLockedRoute() {
       durationSeconds: leg.duration.value,
       leaveLabel: minutesToTimeLabel(ferryDepartMin),
       arriveLabel: minutesToTimeLabel(hwArrivalMin),
+      departLabel: minutesToTimeLabel(hwDepartMin),
       leaveDate: formatLegDate(0)
     };
     if (routeStops.length >= 1) calculateRoute(); // refresh the total now that the boat leg is countable
@@ -1176,7 +1179,7 @@ function renderRoutePanel() {
   // Permanent first leg — boat to camper collection, always shown, never clicked
   html += `<div class="fixed-leg-label">🚢 Liverpool Ferry → 🚐 Hulland Ward (camper collection)</div>`;
   if (lockedLegInfo) {
-    html += `<div class="leg-time">🕐 Leave ~${lockedLegInfo.leaveLabel} (ferry arrival), ${lockedLegInfo.leaveDate} → Arrive ~${lockedLegInfo.arriveLabel}<br><span style="font-weight:400;">${lockedLegInfo.distanceText} · ${lockedLegInfo.durationText}</span></div>`;
+    html += `<div class="leg-time">🕐 Leave ~${lockedLegInfo.leaveLabel} (ferry arrival), ${lockedLegInfo.leaveDate} → Arrive ~${lockedLegInfo.arriveLabel}<br><span style="font-weight:400;">${lockedLegInfo.distanceText} · ${lockedLegInfo.durationText}</span><br>+1hr collecting "Eva" → Depart ~${lockedLegInfo.departLabel}</div>`;
   } else {
     html += `<div class="leg-time">Calculating the fixed ferry ⇄ camper leg…</div>`;
   }
@@ -1197,8 +1200,21 @@ function renderRoutePanel() {
     });
     html += `</ul>`;
     html += `<div id="routeResult" class="route-total">Calculating…</div>`;
+    html += `<button class="btn amber" style="width:100%;margin-top:10px;" onclick="openInGoogleMaps()">🗺️ Open this route in Google Maps</button>`;
   }
   card.innerHTML = html;
+}
+
+/* Opens the same route (Hulland Ward -> every clicked stop, in order) in real Google Maps for turn-by-turn navigation on the day */
+function openInGoogleMaps() {
+  const hw = LOCATIONS.find(l => l.id === "hulland-ward");
+  if (!hw.resolvedLatLng || routeStops.length < 1) return;
+  const toCoord = l => `${l.resolvedLatLng.lat()},${l.resolvedLatLng.lng()}`;
+  const destination = routeStops[routeStops.length - 1];
+  let url = `https://www.google.com/maps/dir/?api=1&origin=${toCoord(hw)}&destination=${toCoord(destination)}&travelmode=driving`;
+  const waypoints = routeStops.slice(0, -1).map(toCoord).join("|");
+  if (waypoints) url += `&waypoints=${encodeURIComponent(waypoints)}`;
+  window.open(url, "_blank");
 }
 
 let routeRequestId = 0;
