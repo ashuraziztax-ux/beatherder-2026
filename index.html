@@ -389,7 +389,7 @@ window.gmapsLoadFailed = function() {
 <script>
 /* ---------- VERSION & UPDATE CHECK ---------- */
 /* Bump APP_VERSION and version.json together on every deploy — the banner below is how you know you're not looking at a stale cached copy */
-const APP_VERSION = "2026-07-02.20";
+const APP_VERSION = "2026-07-02.21";
 
 try {
   document.getElementById("versionBadge").textContent = "v" + APP_VERSION;
@@ -449,7 +449,8 @@ const LOCATIONS = [
     id: "beatherder", name: "Beat-Herder Festival", category: "venue",
     lat: 53.9290, lon: -2.4120,
     address: "Dockber Farm, Sawley, Lancashire, BB7 4LH",
-    facts: ["Thursday 16 – Sunday 19 July 2026", "Leave for Calder Farm ~5pm on Mon 20 Jul"],
+    checkoutTime: "12:00",
+    facts: ["4 days: Thursday 16 – Sunday 19 July 2026", "Leaving at 12:00pm on Mon 20 Jul → arrive Calder Farm ~12:07pm (7 min away)"],
     good: ["The whole trip is built around this — main event"],
     bad: [],
     walk: null
