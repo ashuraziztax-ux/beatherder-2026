@@ -178,6 +178,7 @@
   .status-tag.ruledout { background: #eee; color: var(--grey); text-decoration: line-through; }
   .status-tag.maybe { background: #e3f4f8; color: #197c93; }
   .row-ruledout td, .row-hidden td { opacity: 0.55; }
+  .row-booked td { background: #f3fbf6; }
 
   /* TODO */
   .todo-group { margin-bottom: 6px; }
@@ -236,6 +237,7 @@
         <button class="btn secondary" id="fitAll">Reset view</button>
         <button class="btn secondary" id="restoreHidden" style="display:none;">↩ Restore hidden pins</button>
         <button class="btn secondary" id="attractionsToggle" onclick="toggleAttractions()">🥾 Show things to do (Dalesbridge area)</button>
+        <button class="btn secondary" id="onlyBookedToggle" onclick="toggleOnlyBooked()">✅ Show only booked</button>
       </div>
       <div class="note" id="modeNote">Click any pin for full details — distances, walking info, and the good &amp; bad of each place. Toggle "Plan a Route" to instead click pins in order and build up a driving-time total.</div>
       <div class="note" id="lockedRouteInfo" style="font-weight:600;color:var(--purple-dark);margin-top:6px;">🔒 Calculating the fixed ferry ⇄ camper leg…</div>
@@ -389,7 +391,7 @@ window.gmapsLoadFailed = function() {
 <script>
 /* ---------- VERSION & UPDATE CHECK ---------- */
 /* Bump APP_VERSION and version.json together on every deploy — the banner below is how you know you're not looking at a stale cached copy */
-const APP_VERSION = "2026-07-05.1";
+const APP_VERSION = "2026-07-05.2";
 
 try {
   document.getElementById("versionBadge").textContent = "v" + APP_VERSION;
@@ -1007,6 +1009,30 @@ function restoreAllHidden() {
 /* ---------- MAP FILTER BY YOUR RATING ---------- */
 
 let minRatingFilter = 0; // 0 = no filter, show everything
+let onlyShowBooked = false;
+
+function getBookedStore() {
+  try { return JSON.parse(safeStorageGet("beatherder-booked") || "{}"); } catch (e) { return {}; }
+}
+function getBookingDetailsStore() {
+  try { return JSON.parse(safeStorageGet("beatherder-booking-details") || "{}"); } catch (e) { return {}; }
+}
+function toggleBooked(id) {
+  const booked = getBookedStore();
+  booked[id] = !booked[id];
+  safeStorageSet("beatherder-booked", JSON.stringify(booked));
+  markViewed(id);
+  applyRatingFilter();
+  renderCampsiteTable();
+  const loc = LOCATIONS.find(l => l.id === id);
+  if (loc && currentDetailId === id) showDetail(loc);
+}
+function toggleOnlyBooked() {
+  onlyShowBooked = !onlyShowBooked;
+  const btn = document.getElementById("onlyBookedToggle");
+  if (btn) btn.textContent = onlyShowBooked ? "↩ Show all campsites again" : "✅ Show only booked";
+  applyRatingFilter();
+}
 
 function renderRatingFilterWidget() {
   let html = "";
@@ -1026,13 +1052,15 @@ function setRatingFilter(n) {
 function applyRatingFilter() {
   const ratings = getRatingsStore();
   const hidden = getHiddenStore();
+  const booked = getBookedStore();
   MAP_LOCATIONS.forEach(loc => {
     const marker = markerById[loc.id];
     if (!marker) return;
     if (hidden[loc.id]) { marker.setMap(null); return; }
     // Key bookings (ferry, camper collection, Calder Farm) and the festival itself are fixed reference points,
-    // not campsites being compared — always show them no matter what the rating filter is set to.
+    // not campsites being compared — always show them no matter what the rating filter or "only booked" mode is set to.
     if (loc.category === "booking" || loc.category === "venue") { marker.setMap(map); return; }
+    if (onlyShowBooked && !booked[loc.id]) { marker.setMap(null); return; }
     const rating = ratings[loc.id] || 0;
     const passesFilter = minRatingFilter === 0 || rating >= minRatingFilter;
     marker.setMap(passesFilter ? map : null);
@@ -1120,7 +1148,16 @@ function showDetail(loc) {
   html += `<h3 style="margin-top:0;">${loc.name}</h3>`;
   html += `<div style="font-size:12.5px;color:#8a8378;margin-bottom:8px;">${loc.address}</div>`;
   html += `<div class="section-label">⭐ Your rating</div>${renderStarWidget(loc.id)}`;
-  html += `<div style="margin-top:8px;"><button class="btn" style="background:#c23b3b;font-size:11.5px;padding:6px 12px;" onclick="hidePin('${loc.id}')">🗑️ Remove pin from map</button></div>`;
+  const isBooked = getBookedStore()[loc.id];
+  html += `<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;">`;
+  html += `<button class="btn" style="background:${isBooked ? "#1f8a4c" : "#8a8378"};font-size:11.5px;padding:6px 12px;" onclick="toggleBooked('${loc.id}')">${isBooked ? "✅ Booked — click to un-book" : "☐ Mark as Booked"}</button>`;
+  html += `<button class="btn" style="background:#c23b3b;font-size:11.5px;padding:6px 12px;" onclick="hidePin('${loc.id}')">🗑️ Remove pin from map</button>`;
+  html += `</div>`;
+  if (isBooked) {
+    html += `<div class="section-label">📋 Booking details</div>`;
+    html += `<textarea class="notes-box" id="bookingBox" placeholder="Dates, confirmation number, deposit paid, contact details...">${escapeHtml(getBookingDetailsStore()[loc.id] || "")}</textarea>`;
+    html += `<div class="notes-saved" id="bookingSaved"></div>`;
+  }
 
   const photos = loc.manualPhotos || loc.placePhotos;
   if (photos && photos.length) {
@@ -1170,6 +1207,22 @@ function showDetail(loc) {
       setTimeout(() => { if (savedIndicator) savedIndicator.textContent = ""; }, 1500);
     }, 400);
   });
+
+  const bookingBox = document.getElementById("bookingBox");
+  if (bookingBox) {
+    const bookingSavedIndicator = document.getElementById("bookingSaved");
+    let bookingSaveTimer = null;
+    bookingBox.addEventListener("input", () => {
+      clearTimeout(bookingSaveTimer);
+      bookingSaveTimer = setTimeout(() => {
+        const details = getBookingDetailsStore();
+        details[loc.id] = bookingBox.value;
+        safeStorageSet("beatherder-booking-details", JSON.stringify(details));
+        bookingSavedIndicator.textContent = "Saved";
+        setTimeout(() => { if (bookingSavedIndicator) bookingSavedIndicator.textContent = ""; }, 1500);
+      }, 400);
+    });
+  }
 }
 
 function escapeHtml(str) {
@@ -1381,18 +1434,21 @@ function renderCampsiteTable() {
   const campBody = document.getElementById("campsiteBody");
   if (!campBody) return;
   const viewed = getViewedStore();
+  const booked = getBookedStore();
   campBody.innerHTML = "";
   LOCATIONS.filter(l => ["frontrunner", "considered", "ruledout", "maybe"].includes(l.category)).forEach(loc => {
     const tr = document.createElement("tr");
     if (loc.category === "ruledout") tr.classList.add("row-ruledout");
+    if (booked[loc.id]) tr.classList.add("row-booked");
     const seenBadge = viewed[loc.id]
       ? `<span class="seen-badge" title="You've looked at this one">✅</span>`
       : `<span class="seen-badge" title="Not looked at yet" style="opacity:.3;">👁</span>`;
     const hidden = getHiddenStore();
     if (hidden[loc.id]) tr.classList.add("row-hidden");
     const hiddenTag = hidden[loc.id] ? `<span class="status-tag" style="background:#eee;color:#999;margin-left:5px;">🚫 hidden from map</span>` : "";
+    const bookedTag = booked[loc.id] ? `<span class="status-tag" style="background:#e8f6ee;color:#1f8a4c;margin-left:5px;">✅ BOOKED</span>` : "";
     tr.innerHTML = `
-      <td class="site-cell" onclick="openOnMap('${loc.id}')">${seenBadge}<b class="site-name">${loc.name}</b>${hiddenTag}</td>
+      <td class="site-cell" onclick="openOnMap('${loc.id}')">${seenBadge}<b class="site-name">${loc.name}</b>${hiddenTag}${bookedTag}</td>
       <td><span class="status-tag ${loc.category}">${CATEGORY_STYLE[loc.category].label}</span></td>
       <td>${renderStarWidget(loc.id)}</td>
       <td id="ferry-${loc.id}">${loc.fromFerry || "—"}</td>
