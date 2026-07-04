@@ -381,7 +381,7 @@ window.gmapsLoadFailed = function() {
 <script>
 /* ---------- VERSION & UPDATE CHECK ---------- */
 /* Bump APP_VERSION and version.json together on every deploy — the banner below is how you know you're not looking at a stale cached copy */
-const APP_VERSION = "2026-07-02.13";
+const APP_VERSION = "2026-07-02.14";
 
 try {
   document.getElementById("versionBadge").textContent = "v" + APP_VERSION;
@@ -408,6 +408,7 @@ const LOCATIONS = [
     id: "ferry", name: "Liverpool Ferry Terminal", category: "booking",
     lat: 53.4130, lon: -2.9930,
     address: "1 Triskelion Way, Liverpool, L3 0BN",
+    checkoutTime: "10:00", // scheduled ferry arrival — fixed and known, not a checkout guess
     facts: [
       "Outbound: Mon 13 Jul, 07:15–10:00, ship Manannan",
       "Return: Wed 22 Jul, 19:15–22:00, ship Manannan",
@@ -823,6 +824,12 @@ function maybeDrawLockedRoute() {
     if (infoEl) {
       infoEl.textContent = `🔒 Fixed leg — Liverpool Ferry ⇄ Hulland Ward: ${miles.toFixed(1)} mi / ${fmt(mins)} each way · ${(miles * 2).toFixed(1)} mi / ${fmt(mins * 2)} round trip (you'll drive this outbound AND on return)`;
     }
+    // Hulland Ward isn't an overnight stop either — you collect the camper and drive on the same day.
+    // Its "departure time" for the route planner is the real arrival time off this fixed leg, not a checkout guess.
+    const ferryDepartMin = timeStringToMinutes(ferry.checkoutTime || DEFAULT_CHECKOUT);
+    const hwArrivalMin = ferryDepartMin + Math.round(leg.duration.value / 60);
+    hw.checkoutTime = minutesTo24hString(hwArrivalMin);
+    if (currentDetailId === "hulland-ward") showDetail(hw);
   });
 }
 
@@ -1083,6 +1090,16 @@ function minutesToTimeLabel(mins) {
   let h12 = h % 12; if (h12 === 0) h12 = 12;
   return `${h12}:${String(m).padStart(2, "0")}${ampm}`;
 }
+function minutesTo24hString(mins) {
+  mins = ((Math.round(mins) % 1440) + 1440) % 1440;
+  const h = Math.floor(mins / 60), m = mins % 60;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
+function departureReasonLabel(loc) {
+  if (loc.id === "ferry") return "ferry arrival";
+  if (loc.id === "hulland-ward") return "camper collected";
+  return "checkout";
+}
 
 function renderRoutePanel() {
   const card = document.getElementById("detailCard");
@@ -1096,7 +1113,7 @@ function renderRoutePanel() {
       if (i < routeStops.length - 1) {
         const leg = routeLegTimes[i];
         if (leg) {
-          html += `<div class="leg-time">🕐 Leave ~${leg.leaveLabel} (checkout) → Arrive ~${leg.arriveLabel}<br><span style="font-weight:400;">${leg.distanceText} · ${leg.durationText}</span></div>`;
+          html += `<div class="leg-time">🕐 Leave ~${leg.leaveLabel} (${departureReasonLabel(loc)}) → Arrive ~${leg.arriveLabel}<br><span style="font-weight:400;">${leg.distanceText} · ${leg.durationText}</span></div>`;
         } else {
           html += `<div class="leg-time">↓ calculating…</div>`;
         }
