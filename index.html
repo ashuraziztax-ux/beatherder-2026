@@ -139,7 +139,7 @@
   }
   .route-list .name { flex: 1; }
   .route-list .remove { cursor: pointer; color: var(--red); font-weight: 700; font-size: 15px; }
-  .leg-time { font-size: 11.5px; color: #a39a89; text-align: center; padding: 1px 0 5px; font-weight: 600; }
+  .leg-time { font-size: 11.5px; color: #a39a89; text-align: center; padding: 2px 0 6px; font-weight: 600; line-height: 1.5; }
   .route-total { font-size: 14px; font-weight: 700; color: var(--purple-dark); border-top: 1px dashed var(--line); padding-top: 10px; margin-top: 10px; }
   .route-total .small { font-weight: 400; font-size: 11.5px; color: #a39a89; display: block; margin-top: 2px; }
 
@@ -381,7 +381,7 @@ window.gmapsLoadFailed = function() {
 <script>
 /* ---------- VERSION & UPDATE CHECK ---------- */
 /* Bump APP_VERSION and version.json together on every deploy — the banner below is how you know you're not looking at a stale cached copy */
-const APP_VERSION = "2026-07-02.12";
+const APP_VERSION = "2026-07-02.13";
 
 try {
   document.getElementById("versionBadge").textContent = "v" + APP_VERSION;
@@ -1069,18 +1069,37 @@ function removeRouteStop(index) {
   else directionsRenderer.setDirections({ routes: [] });
 }
 
+/* Every stop is treated as an overnight — departs at its checkout time (noon if unknown), arrives at the next stop that many minutes later */
+const DEFAULT_CHECKOUT = "12:00";
+
+function timeStringToMinutes(t) {
+  const [h, m] = t.split(":").map(Number);
+  return h * 60 + m;
+}
+function minutesToTimeLabel(mins) {
+  mins = ((Math.round(mins) % 1440) + 1440) % 1440;
+  const h = Math.floor(mins / 60), m = mins % 60;
+  const ampm = h >= 12 ? "pm" : "am";
+  let h12 = h % 12; if (h12 === 0) h12 = 12;
+  return `${h12}:${String(m).padStart(2, "0")}${ampm}`;
+}
+
 function renderRoutePanel() {
   const card = document.getElementById("detailCard");
   let html = `<h3 style="margin-top:0;">🧭 Route planner</h3>`;
   if (routeStops.length === 0) {
-    html += `<div class="detail-empty">Click pins on the map, in order, to build a route.</div>`;
+    html += `<div class="detail-empty">Click pins on the map, in order, to build a route. Each stop is treated as an overnight — departure times use checkout time (noon if not known).</div>`;
   } else {
     html += `<ul class="route-list">`;
     routeStops.forEach((loc, i) => {
       html += `<li><span class="num">${i + 1}</span><span class="name">${loc.name}</span><span class="remove" onclick="removeRouteStop(${i})">✕</span></li>`;
       if (i < routeStops.length - 1) {
-        const legText = routeLegTimes[i] || "calculating…";
-        html += `<div class="leg-time">↓ ${legText}</div>`;
+        const leg = routeLegTimes[i];
+        if (leg) {
+          html += `<div class="leg-time">🕐 Leave ~${leg.leaveLabel} (checkout) → Arrive ~${leg.arriveLabel}<br><span style="font-weight:400;">${leg.distanceText} · ${leg.durationText}</span></div>`;
+        } else {
+          html += `<div class="leg-time">↓ calculating…</div>`;
+        }
       }
     });
     html += `</ul>`;
@@ -1112,7 +1131,17 @@ function calculateRoute() {
     }
     directionsRenderer.setDirections(result);
     const legs = result.routes[0].legs;
-    routeLegTimes = legs.map(l => `${l.distance.text} · ${l.duration.text}`);
+    routeLegTimes = legs.map((l, i) => {
+      const fromLoc = routeStops[i];
+      const checkoutMin = timeStringToMinutes(fromLoc.checkoutTime || DEFAULT_CHECKOUT);
+      const arriveMin = checkoutMin + (l.duration.value / 60);
+      return {
+        distanceText: l.distance.text,
+        durationText: l.duration.text,
+        leaveLabel: minutesToTimeLabel(checkoutMin),
+        arriveLabel: minutesToTimeLabel(arriveMin)
+      };
+    });
     renderRoutePanel();
 
     const totalMeters = legs.reduce((sum, l) => sum + l.distance.value, 0);
