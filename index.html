@@ -408,7 +408,7 @@ window.gmapsLoadFailed = function() {
 <script>
 /* ---------- VERSION & UPDATE CHECK ---------- */
 /* Bump APP_VERSION and version.json together on every deploy — the banner below is how you know you're not looking at a stale cached copy */
-const APP_VERSION = "2026-07-05.7";
+const APP_VERSION = "2026-07-05.8";
 
 try {
   document.getElementById("versionBadge").textContent = "v" + APP_VERSION;
@@ -1095,6 +1095,7 @@ function toggleOnlyBooked() {
   // this button's real job is decluttering the map down to just what's confirmed, with clear confirmation that it's done.
   if (btn) btn.textContent = onlyShowBooked ? "🔒 Bookings locked in — click to show all again" : "✅ Show only booked";
   applyRatingFilter();
+  renderCampsiteTable();
 }
 
 function renderRatingFilterWidget() {
@@ -1542,7 +1543,9 @@ function renderCampsiteTable() {
   if (!campBody) return;
   const viewed = getViewedStore();
   campBody.innerHTML = "";
-  LOCATIONS.filter(l => ["frontrunner", "considered", "ruledout", "maybe"].includes(l.category)).forEach(loc => {
+  LOCATIONS.filter(l => ["frontrunner", "considered", "ruledout", "maybe"].includes(l.category))
+    .filter(l => !onlyShowBooked || isLocBooked(l))
+    .forEach(loc => {
     const tr = document.createElement("tr");
     if (loc.category === "ruledout") tr.classList.add("row-ruledout");
     const bookedNow = isLocBooked(loc);
