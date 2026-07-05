@@ -234,6 +234,7 @@
       <div class="route-controls">
         <button class="btn amber" id="routeToggle">🧭 Plan a Route</button>
         <button class="btn secondary" id="routeClear">Clear route</button>
+        <button class="btn amber" id="saveJourneyBtn">💾 Save Journey</button>
         <button class="btn secondary" id="fitAll">Reset view</button>
         <button class="btn secondary" id="restoreHidden" style="display:none;">↩ Restore hidden pins</button>
         <button class="btn secondary" id="attractionsToggle" onclick="toggleAttractions()">🥾 Show things to do (Dalesbridge area)</button>
@@ -407,7 +408,7 @@ window.gmapsLoadFailed = function() {
 <script>
 /* ---------- VERSION & UPDATE CHECK ---------- */
 /* Bump APP_VERSION and version.json together on every deploy — the banner below is how you know you're not looking at a stale cached copy */
-const APP_VERSION = "2026-07-05.6";
+const APP_VERSION = "2026-07-05.7";
 
 try {
   document.getElementById("versionBadge").textContent = "v" + APP_VERSION;
@@ -753,6 +754,13 @@ function initApp() {
   placesService = new google.maps.places.PlacesService(map);
   distanceMatrixService = new google.maps.DistanceMatrixService();
 
+  loadJourneyFromStorage();
+  if (pendingRouteRestore) {
+    routeMode = true;
+    document.getElementById("routeToggle").textContent = "✅ Planning… click pins to add stops";
+    document.getElementById("routeToggle").classList.add("on");
+  }
+
   LOCATIONS.forEach(loc => geocodeAndPlace(loc));
 
   document.getElementById("fitAll").addEventListener("click", fitAllBounds);
@@ -778,7 +786,14 @@ function geocodeAndPlace(loc) {
     if (loc.category !== "ruledout") {
       placeMarker(loc, position);
       geocodedCount++;
-      if (geocodedCount === MAP_LOCATIONS.length) fitAllBounds();
+      if (geocodedCount === MAP_LOCATIONS.length) {
+        fitAllBounds();
+        if (pendingRouteRestore) {
+          pendingRouteRestore = false;
+          renderRoutePanel();
+          calculateRoute();
+        }
+      }
       maybeDrawLockedRoute();
     }
     resolvePlaceExtras(loc, position);
@@ -1076,7 +1091,9 @@ function toggleBooked(id) {
 function toggleOnlyBooked() {
   onlyShowBooked = !onlyShowBooked;
   const btn = document.getElementById("onlyBookedToggle");
-  if (btn) btn.textContent = onlyShowBooked ? "↩ Show all campsites again" : "✅ Show only booked";
+  // This doubles as the "lock everything in" moment — ratings/bookings/notes already autosave as you go,
+  // this button's real job is decluttering the map down to just what's confirmed, with clear confirmation that it's done.
+  if (btn) btn.textContent = onlyShowBooked ? "🔒 Bookings locked in — click to show all again" : "✅ Show only booked";
   applyRatingFilter();
 }
 
@@ -1282,6 +1299,20 @@ function escapeHtml(str) {
 let routeMode = false;
 let routeStops = [];
 let routeLegTimes = [];
+let pendingRouteRestore = false;
+
+/* The built journey (which pins, in what order) now saves itself on every add/remove/clear — this is what was
+   never being persisted before, which is why the page "forgot" everything on reopen. */
+function saveJourneyToStorage() {
+  safeStorageSet("beatherder-journey", JSON.stringify(routeStops.map(l => l.id)));
+}
+function loadJourneyFromStorage() {
+  try {
+    const ids = JSON.parse(safeStorageGet("beatherder-journey") || "[]");
+    routeStops = ids.map(id => LOCATIONS.find(l => l.id === id)).filter(Boolean);
+  } catch (e) { routeStops = []; }
+  if (routeStops.length > 0) pendingRouteRestore = true;
+}
 
 function wireRouteControls() {
   document.getElementById("routeToggle").addEventListener("click", () => {
@@ -1292,7 +1323,7 @@ function wireRouteControls() {
       currentDetailId = null;
       btn.textContent = "✅ Planning… click pins to add stops";
       btn.classList.add("on");
-      noteEl.textContent = "Route mode is ON — click pins in the order you'd visit them. Driving time adds up automatically below.";
+      noteEl.textContent = "Route mode is ON — click pins in the order you'd visit them, including Ferry/Hulland Ward again at the end for a full round trip. Driving time adds up automatically below.";
       renderRoutePanel();
     } else {
       btn.textContent = "🧭 Plan a Route";
@@ -1304,15 +1335,27 @@ function wireRouteControls() {
 
   document.getElementById("routeClear").addEventListener("click", () => {
     routeStops = [];
+    saveJourneyToStorage();
     directionsRenderer.setDirections({ routes: [] });
     if (routeMode) renderRoutePanel();
   });
+
+  const saveBtn = document.getElementById("saveJourneyBtn");
+  if (saveBtn) {
+    saveBtn.addEventListener("click", () => {
+      saveJourneyToStorage();
+      const original = saveBtn.textContent;
+      saveBtn.textContent = "✅ Journey saved!";
+      setTimeout(() => { saveBtn.textContent = original; }, 1800);
+    });
+  }
 }
 
 function addRouteStop(loc) {
   // Ferry/Hulland Ward can still be clicked here — e.g. clicked again at the end of a route to see the drive back, completing a round trip
   routeStops.push(loc);
   routeLegTimes = [];
+  saveJourneyToStorage();
   renderRoutePanel();
   calculateRoute();
 }
@@ -1320,6 +1363,7 @@ function addRouteStop(loc) {
 function removeRouteStop(index) {
   routeStops.splice(index, 1);
   routeLegTimes = [];
+  saveJourneyToStorage();
   renderRoutePanel();
   if (routeStops.length >= 1) calculateRoute();
   else directionsRenderer.setDirections({ routes: [] });
