@@ -280,7 +280,7 @@
     </div>
     <div class="card">
       <h2>Free camping windows</h2>
-      <p class="fact"><b>Pre-festival (Mon 13 – Thu 16 Jul):</b> collect the camper same day as the ferry, then free until the festival — roughly 2–3 free nights (13th, 14th, 15th).</p>
+      <p class="fact"><b>Pre-festival (Mon 13 – Thu 16 Jul):</b> collect the camper same day as the ferry, then free until the festival. ✅ Booked: Dalesbridge Campsite and Cabins for the 13th and 14th (2 nights) — one more night (15th) still to sort.</p>
       <p class="fact"><b>Post-festival (Tue 21 Jul):</b> ✅ Booked — Lickpenny (Matlock Club Campsite), 1 night, arriving 13:00–14:00, departing 22 Jul. Closest campsite to Hulland Ward, perfectly positioned for the return drive before the Wed 22 Jul ferry.</p>
       <p class="fact"><b>Revised recommendation:</b> use the Peak District for both free windows — it sits right on the doorstep of Hulland Ward with zero detour, unlike the Lake District (2h25+ one-way from the actual camper base).</p>
     </div>
@@ -406,7 +406,7 @@ window.gmapsLoadFailed = function() {
 <script>
 /* ---------- VERSION & UPDATE CHECK ---------- */
 /* Bump APP_VERSION and version.json together on every deploy — the banner below is how you know you're not looking at a stale cached copy */
-const APP_VERSION = "2026-07-05.4";
+const APP_VERSION = "2026-07-05.5";
 
 try {
   document.getElementById("versionBadge").textContent = "v" + APP_VERSION;
@@ -492,12 +492,14 @@ const LOCATIONS = [
     bad: ["Furthest of the two front-runners from Beat-Herder (1h49)", "Only a bar on site, not a full restaurant"]
   },
   {
-    id: "dalesbridge", name: "Dalesbridge", category: "frontrunner",
+    id: "dalesbridge", name: "Dalesbridge Campsite and Cabins", category: "frontrunner",
     lat: 54.0880, lon: -2.3010, address: "Austwick, Settle, LA2 8AT",
     website: "https://www.dalesbridge.co.uk/",
     fromHW: "108mi / 2h29", toBH: "19.5mi / 30min", rating: "Best photos/character of anything checked",
     walk: "Game Cock Inn, Austwick — 10 min walk. Ingleton Waterfalls Trail 15 min drive.",
-    good: ["Best-looking, most characterful campsite found — stone farmhouse, riverside meadow", "On-site bar + wood-fired pizza nights", "Short 30-min hop onward to the festival", "Walkable village pub"],
+    defaultBooked: true,
+    defaultBookingDetails: "✅ BOOKED — the pre-festival campsite decision, resolved.\nBooking ref: WTB1AB4585\n1× Gravel Hardstanding Electric pitch (shared facilities) — 2 adults\nMon 13 Jul 2026: £31.00\nTue 14 Jul 2026: £31.00\nTotal: £62.00 — paid in full via Stripe, 5 Jul 2026\nCovers the first 2 of the 3 pre-festival free nights — one more night (15 Jul) still to book.",
+    good: ["Best-looking, most characterful campsite found — stone farmhouse, riverside meadow", "On-site bar + wood-fired pizza nights", "Short 30-min hop onward to the festival", "Walkable village pub", "Booked — the pre-festival decision is now resolved"],
     bad: ["Long first-day drive from Hulland Ward — 2h29, over the 2h comfort limit (~4.5h total driving that day)", "Austwick itself is tiny — not a \"browse the shops\" town like Skipton or Hawes"]
   },
   {
@@ -669,7 +671,7 @@ const ATTRACTIONS = [
 
 const ITINERARY = [
   { day: "Mon", date: "13 Jul", plan: "Ferry Douglas → Liverpool, dep 07:15 arr 10:00. Drive ~2h to Hulland Ward to collect \"Eva\", leave own car there. Free from early/mid-afternoon.", festival: false },
-  { day: "Mon–Wed", date: "13–15 Jul", plan: "Free camping nights before the festival — campsite still to be decided (Peak District/Dales front-runners: Hartington Hills or Dalesbridge).", festival: false },
+  { day: "Mon–Wed", date: "13–15 Jul", plan: "Free camping before the festival — BOOKED: Dalesbridge Campsite and Cabins for 13th-14th (2 nights). Still need to sort the 15th.", festival: false },
   { day: "Thu–Sun", date: "16–19 Jul", plan: "Beat-Herder Festival, Dockber Farm, Sawley, Lancashire BB7 4LH.", festival: true },
   { day: "Mon", date: "20 Jul, ~5pm", plan: "Leave festival → Calder Farm, Clitheroe (7 min away).", festival: false },
   { day: "Mon–Tue", date: "20–21 Jul", plan: "Stay at Calder Farm (cabin, number TBC).", festival: false },
@@ -682,7 +684,7 @@ const TODOS = [
   { text: "Confirm how the £1,000 damages deposit is being paid — bank transfer due Mon 6 Jul, or card pre-auth on collection", urgent: true },
   { text: "Chase 4eva Young Camper Hire's collection-day email if not received by ~6 Jul", urgent: true },
   { text: "Get Calder Farm cabin number/name and exact checkout time (call 01200 447725)", urgent: false },
-  { text: "Decide pre-festival campsite (front-runners: Hartington Hills or Dalesbridge; or one of the others)", urgent: false },
+  { text: "Sort the 3rd pre-festival night (15 Jul) — Dalesbridge booked for 13th-14th already", urgent: false },
   { text: "Decide the one free night after Calder Farm, before the return ferry", urgent: false },
   { text: "Check the Met Office long-range forecast for BB7 nearer the time", urgent: false }
 ];
