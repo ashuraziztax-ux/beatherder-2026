@@ -77,7 +77,7 @@
 
   /* MAP TAB */
   .map-layout { display: flex; gap: 14px; flex-wrap: wrap-reverse; align-items: flex-start; }
-  #map { flex: 1 1 560px; min-width: 300px; height: 560px; border-radius: 14px; border: 1px solid var(--line); }
+  #map { flex: 1 1 560px; min-width: 300px; height: min(78vh, 900px); min-height: 480px; border-radius: 14px; border: 1px solid var(--line); }
   .side-panel { flex: 1 1 300px; min-width: 280px; display: flex; flex-direction: column; gap: 12px; }
   .route-controls { display: flex; gap: 8px; flex-wrap: wrap; }
   .btn {
@@ -300,7 +300,8 @@
       </div>
 
       <div class="card">
-        <h3 class="expand-toggle" id="camperToggle" style="cursor:pointer;">🚐 Camper van — "Eva", 4eva Young Camper Hire <span style="font-size:11px;color:var(--purple);font-weight:600;">(click for full specs &amp; photos ▾)</span></h3>
+        <h3 style="margin-bottom:8px;">🚐 Camper van — "Eva", 4eva Young Camper Hire</h3>
+        <button class="btn amber" id="camperToggle" style="width:100%;margin-bottom:10px;">📸 Show full specs &amp; photos ▾</button>
         <div class="status-line"><span class="status-dot good"></span> Hire fee paid in full — £1,690.00</div>
         <p class="fact"><b>Dates:</b> 13–22 July (9 nights), 2 named drivers (Ashur Aziz + Faith Marshall), unlimited UK mileage.</p>
         <p class="fact"><b>Collection:</b> Hulland Ward, Ashbourne, Derbyshire — exact postcode not yet published; working assumption only.</p>
@@ -406,7 +407,7 @@ window.gmapsLoadFailed = function() {
 <script>
 /* ---------- VERSION & UPDATE CHECK ---------- */
 /* Bump APP_VERSION and version.json together on every deploy — the banner below is how you know you're not looking at a stale cached copy */
-const APP_VERSION = "2026-07-05.5";
+const APP_VERSION = "2026-07-05.6";
 
 try {
   document.getElementById("versionBadge").textContent = "v" + APP_VERSION;
@@ -493,11 +494,13 @@ const LOCATIONS = [
   },
   {
     id: "dalesbridge", name: "Dalesbridge Campsite and Cabins", category: "frontrunner",
-    lat: 54.0880, lon: -2.3010, address: "Austwick, Settle, LA2 8AT",
+    lat: 54.0880, lon: -2.3010, address: "Austwick, North Yorkshire, LA2 8AZ",
     website: "https://www.dalesbridge.co.uk/",
     fromHW: "108mi / 2h29", toBH: "19.5mi / 30min", rating: "Best photos/character of anything checked",
     walk: "Game Cock Inn, Austwick — 10 min walk. Ingleton Waterfalls Trail 15 min drive.",
     defaultBooked: true,
+    bookedNights: 2,
+    bookedDateRange: "13-14 Jul",
     defaultBookingDetails: "✅ BOOKED — the pre-festival campsite decision, resolved.\nBooking ref: WTB1AB4585\n1× Gravel Hardstanding Electric pitch (shared facilities) — 2 adults\nMon 13 Jul 2026: £31.00\nTue 14 Jul 2026: £31.00\nTotal: £62.00 — paid in full via Stripe, 5 Jul 2026\nCovers the first 2 of the 3 pre-festival free nights — one more night (15 Jul) still to book.",
     good: ["Best-looking, most characterful campsite found — stone farmhouse, riverside meadow", "On-site bar + wood-fired pizza nights", "Short 30-min hop onward to the festival", "Walkable village pub", "Booked — the pre-festival decision is now resolved"],
     bad: ["Long first-day drive from Hulland Ward — 2h29, over the 2h comfort limit (~4.5h total driving that day)", "Austwick itself is tiny — not a \"browse the shops\" town like Skipton or Hawes"]
@@ -525,6 +528,8 @@ const LOCATIONS = [
     fromHW: "13.8mi / 28min", toBH: "not checked", rating: "4.6★ Google (716 reviews)",
     walk: "Not confirmed — gateway to Matlock Bath (cable car, promenade, cafes).",
     defaultBooked: true,
+    bookedNights: 1,
+    bookedDateRange: "21-22 Jul",
     defaultBookingDetails: "✅ BOOKED — the post-festival free night (was \"TBD\").\nArriving 21 Jul 2026, check-in 13:00–14:00. Departing 22 Jul 2026. 1 night.\n2 adults, campervan, Serviced Pitch With Awning.\nNo offers/extras/special requests on the booking.",
     good: ["Closest campsite of any option to Hulland Ward — sets up the return drive perfectly", "Gateway to quirky Matlock Bath", "Booked for exactly the right night — 21 Jul, between Calder Farm and the return ferry"],
     bad: ["Distance onward to Beat-Herder not checked (not relevant now — this is the post-festival stop, not pre-festival)"]
@@ -669,14 +674,16 @@ const ATTRACTIONS = [
   { id: "attr-fell-running", name: "Fell Running", category: "attraction", address: "Austwick, North Yorkshire", website: "https://www.dalesbridge.co.uk/what-to-do", facts: ["Trail running in the surrounding hills and valleys — general activity, not one fixed spot"] }
 ];
 
+/* Each row's booked/unbooked status and "X nights" wording is computed live from the linked location's data —
+   editing a place's defaultBooked/bookedNights/bookedDateRange fields (or toggling it in the UI) updates the itinerary automatically, nothing here needs hand-editing per booking. */
 const ITINERARY = [
-  { day: "Mon", date: "13 Jul", plan: "Ferry Douglas → Liverpool, dep 07:15 arr 10:00. Drive ~2h to Hulland Ward to collect \"Eva\", leave own car there. Free from early/mid-afternoon.", festival: false },
-  { day: "Mon–Wed", date: "13–15 Jul", plan: "Free camping before the festival — BOOKED: Dalesbridge Campsite and Cabins for 13th-14th (2 nights). Still need to sort the 15th.", festival: false },
-  { day: "Thu–Sun", date: "16–19 Jul", plan: "Beat-Herder Festival, Dockber Farm, Sawley, Lancashire BB7 4LH.", festival: true },
-  { day: "Mon", date: "20 Jul, ~5pm", plan: "Leave festival → Calder Farm, Clitheroe (7 min away).", festival: false },
-  { day: "Mon–Tue", date: "20–21 Jul", plan: "Stay at Calder Farm (cabin, number TBC).", festival: false },
-  { day: "Tue", date: "21 Jul", plan: "Calder Farm checkout (time TBC) → drive to Lickpenny, Matlock (BOOKED — arrive 13:00-14:00, 1 night, Serviced Pitch With Awning) — closest campsite to Hulland Ward, sets up the return drive.", festival: false },
-  { day: "Wed", date: "22 Jul", plan: "Drive to Hulland Ward, return \"Eva\", collect car → drive ~2h to Liverpool → ferry check-in opens 16:45, closes 18:30, departs 19:15, arrives Douglas 22:00.", festival: false }
+  { day: "Mon", date: "13 Jul", plan: "Ferry Douglas → Liverpool, dep 07:15 arr 10:00. Drive ~2h to Hulland Ward to collect \"Eva\", leave own car there. Free from early/mid-afternoon.", festival: false, linkedLocationIds: ["ferry", "hulland-ward"] },
+  { day: "Mon–Wed", date: "13–15 Jul", plan: "Free camping before the festival.", festival: false, linkedLocationIds: ["dalesbridge"], note: "Still need to sort the 3rd night (15th) — Dalesbridge only covers 13th-14th." },
+  { day: "Thu–Sun", date: "16–19 Jul", plan: "Beat-Herder Festival, Dockber Farm, Sawley, Lancashire BB7 4LH.", festival: true, linkedLocationIds: ["beatherder"] },
+  { day: "Mon", date: "20 Jul, ~5pm", plan: "Leave festival → Calder Farm, Clitheroe (7 min away).", festival: false, linkedLocationIds: ["calder-farm"] },
+  { day: "Mon–Tue", date: "20–21 Jul", plan: "Stay at Calder Farm.", festival: false, linkedLocationIds: ["calder-farm"] },
+  { day: "Tue", date: "21 Jul", plan: "Calder Farm checkout → drive to the post-festival stop — closest campsite to Hulland Ward, sets up the return drive.", festival: false, linkedLocationIds: ["lickpenny"] },
+  { day: "Wed", date: "22 Jul", plan: "Drive to Hulland Ward, return \"Eva\", collect car → drive ~2h to Liverpool → ferry check-in opens 16:45, closes 18:30, departs 19:15, arrives Douglas 22:00.", festival: false, linkedLocationIds: ["hulland-ward", "ferry"] }
 ];
 
 const TODOS = [
@@ -1045,6 +1052,16 @@ function getBookingDetailsForLoc(loc) {
   const stored = getBookingDetailsStore()[loc.id];
   return stored !== undefined ? stored : (loc.defaultBookingDetails || "");
 }
+/* Short "✅ Booked — 2 nights (13-14 Jul)" style summary, reused everywhere a place's booked status is shown so it never has to be hand-typed twice */
+function bookingSummaryLabel(loc) {
+  if (!isLocBooked(loc)) return null;
+  const nights = loc.bookedNights;
+  const range = loc.bookedDateRange;
+  let label = "✅ Booked";
+  if (nights) label += ` — ${nights} night${nights === 1 ? "" : "s"}`;
+  if (range) label += ` (${range})`;
+  return label;
+}
 function toggleBooked(id) {
   const loc = LOCATIONS.find(l => l.id === id);
   const booked = getBookedStore();
@@ -1053,6 +1070,7 @@ function toggleBooked(id) {
   markViewed(id);
   applyRatingFilter();
   renderCampsiteTable();
+  renderItinerary();
   if (loc && currentDetailId === id) showDetail(loc);
 }
 function toggleOnlyBooked() {
@@ -1177,7 +1195,8 @@ function showDetail(loc) {
   html += `<div class="section-label">⭐ Your rating</div>${renderStarWidget(loc.id)}`;
   const isBooked = isLocBooked(loc);
   html += `<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;">`;
-  html += `<button class="btn" style="background:${isBooked ? "#1f8a4c" : "#8a8378"};font-size:11.5px;padding:6px 12px;" onclick="toggleBooked('${loc.id}')">${isBooked ? "✅ Booked — click to un-book" : "☐ Mark as Booked"}</button>`;
+  const bookingSummary = bookingSummaryLabel(loc);
+  html += `<button class="btn" style="background:${isBooked ? "#1f8a4c" : "#8a8378"};font-size:11.5px;padding:6px 12px;" onclick="toggleBooked('${loc.id}')">${isBooked ? `${bookingSummary || "✅ Booked"} — click to un-book` : "☐ Mark as Booked"}</button>`;
   html += `<button class="btn" style="background:#c23b3b;font-size:11.5px;padding:6px 12px;" onclick="hidePin('${loc.id}')">🗑️ Remove pin from map</button>`;
   html += `</div>`;
   if (isBooked) {
@@ -1291,7 +1310,7 @@ function wireRouteControls() {
 }
 
 function addRouteStop(loc) {
-  if (loc.id === "ferry" || loc.id === "hulland-ward") return; // these are already the permanent, fixed first leg — not clickable stops
+  // Ferry/Hulland Ward can still be clicked here — e.g. clicked again at the end of a route to see the drive back, completing a round trip
   routeStops.push(loc);
   routeLegTimes = [];
   renderRoutePanel();
@@ -1446,13 +1465,30 @@ function calculateRoute() {
 
 /* ---------- ITINERARY TAB ---------- */
 
-try {
+function renderItinerary() {
   const itinBody = document.getElementById("itineraryBody");
+  if (!itinBody) return;
+  itinBody.innerHTML = "";
   ITINERARY.forEach(row => {
     const tr = document.createElement("tr");
-    tr.innerHTML = `<td><span class="day-pill ${row.festival ? "festival" : ""}">${row.day}</span></td><td>${row.date}</td><td>${row.plan}</td>`;
+    let planHtml = row.plan;
+    (row.linkedLocationIds || []).forEach(id => {
+      const loc = LOCATIONS.find(l => l.id === id);
+      if (!loc) return;
+      const summary = bookingSummaryLabel(loc);
+      const tagHtml = summary
+        ? `<span class="status-tag" style="background:#e8f6ee;color:#1f8a4c;">${summary}</span>`
+        : (loc.category === "frontrunner" || loc.category === "considered" || loc.category === "maybe" ? `<span class="status-tag" style="background:#eee;color:#999;">not booked yet</span>` : "");
+      planHtml += ` <a href="#" onclick="openOnMap('${id}');return false;" class="link-chip small" style="margin-left:4px;">📍 ${loc.name}</a> ${tagHtml}`;
+    });
+    if (row.note) planHtml += `<br><span style="color:#c23b3b;font-size:12px;font-weight:600;">⚠️ ${row.note}</span>`;
+    tr.innerHTML = `<td><span class="day-pill ${row.festival ? "festival" : ""}">${row.day}</span></td><td>${row.date}</td><td>${planHtml}</td>`;
     itinBody.appendChild(tr);
   });
+}
+
+try {
+  renderItinerary();
 } catch (e) { console.error("Itinerary table failed:", e); }
 
 /* ---------- CAMPSITES TAB ---------- */
@@ -1473,7 +1509,7 @@ function renderCampsiteTable() {
     const hidden = getHiddenStore();
     if (hidden[loc.id]) tr.classList.add("row-hidden");
     const hiddenTag = hidden[loc.id] ? `<span class="status-tag" style="background:#eee;color:#999;margin-left:5px;">🚫 hidden from map</span>` : "";
-    const bookedTag = bookedNow ? `<span class="status-tag" style="background:#e8f6ee;color:#1f8a4c;margin-left:5px;">✅ BOOKED</span>` : "";
+    const bookedTag = bookedNow ? `<span class="status-tag" style="background:#e8f6ee;color:#1f8a4c;margin-left:5px;">${bookingSummaryLabel(loc)}</span>` : "";
     tr.innerHTML = `
       <td class="site-cell" onclick="openOnMap('${loc.id}')">${seenBadge}<b class="site-name">${loc.name}</b>${hiddenTag}${bookedTag}</td>
       <td><span class="status-tag ${loc.category}">${CATEGORY_STYLE[loc.category].label}</span></td>
@@ -1500,7 +1536,7 @@ try {
   camperToggle.addEventListener("click", () => {
     const showing = camperDetail.style.display !== "none";
     camperDetail.style.display = showing ? "none" : "block";
-    camperToggle.querySelector("span").textContent = showing ? "(click for full specs & photos ▾)" : "(click to collapse ▴)";
+    camperToggle.textContent = showing ? "📸 Show full specs & photos ▾" : "📸 Hide specs & photos ▴";
   });
 } catch (e) { console.error("Camper toggle failed:", e); }
 
@@ -1513,6 +1549,7 @@ try {
       document.getElementById("tab-" + btn.dataset.tab).classList.add("active");
       if (btn.dataset.tab === "map" && map) setTimeout(() => { google.maps.event.trigger(map, "resize"); fitAllBounds(); }, 50);
       if (btn.dataset.tab === "campsites") renderCampsiteTable();
+      if (btn.dataset.tab === "itinerary") renderItinerary();
     });
   });
 } catch (e) { console.error("Tab wiring failed:", e); }
