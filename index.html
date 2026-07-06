@@ -410,7 +410,7 @@ window.gmapsLoadFailed = function() {
 <script>
 /* ---------- VERSION & UPDATE CHECK ---------- */
 /* Bump APP_VERSION and version.json together on every deploy — the banner below is how you know you're not looking at a stale cached copy */
-const APP_VERSION = "2026-07-06.1";
+const APP_VERSION = "2026-07-06.2";
 
 try {
   document.getElementById("versionBadge").textContent = "v" + APP_VERSION;
@@ -544,9 +544,9 @@ const LOCATIONS = [
     defaultBooked: true,
     bookedNights: 1,
     bookedDateRange: "21-22 Jul",
-    defaultBookingDetails: "✅ BOOKED — the post-festival free night (was \"TBD\").\nArriving 21 Jul 2026, check-in 13:00–14:00. Departing 22 Jul 2026. 1 night.\n2 adults, campervan, Serviced Pitch With Awning.\nNo offers/extras/special requests on the booking.",
+    defaultBookingDetails: "✅ BOOKED — the post-festival free night.\nBooking ref: U3021074\nBooked 6 Jul 2026\n21 Jul 2026 – 22 Jul 2026 (1 night)\n2 adults, motorhome\nTotal: £59.50\n⚠️ Outstanding balance: £54.50 — still needs paying before arrival.",
     good: ["Closest campsite of any option to Hulland Ward — sets up the return drive perfectly", "Gateway to quirky Matlock Bath", "Booked for exactly the right night — 21 Jul, between Calder Farm and the return ferry"],
-    bad: ["Distance onward to Beat-Herder not checked (not relevant now — this is the post-festival stop, not pre-festival)"]
+    bad: ["£54.50 still outstanding on the booking — pay before arrival", "Distance onward to Beat-Herder not checked (not relevant now — this is the post-festival stop, not pre-festival)"]
   },
   {
     id: "greenhills", name: "Greenhills, Bakewell", category: "considered",
@@ -707,6 +707,7 @@ const ITINERARY = [
 
 const TODOS = [
   { text: "Confirm how the £1,000 damages deposit is being paid — bank transfer due Mon 6 Jul, or card pre-auth on collection", urgent: true },
+  { text: "Pay the £54.50 outstanding balance on the Lickpenny booking (ref U3021074) before arrival 21 Jul", urgent: true },
   { text: "Sort TWO recent proofs of address (dated within last 3 months) to bring for camper collection", urgent: true },
   { text: "Watch the Eva handover video before collection day: youtube.com/shorts/A8VAxL-lGFg", urgent: false },
   { text: "Get Calder Farm cabin number/name and exact checkout time (call 01200 447725)", urgent: false },
