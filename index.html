@@ -410,7 +410,7 @@ window.gmapsLoadFailed = function() {
 <script>
 /* ---------- VERSION & UPDATE CHECK ---------- */
 /* Bump APP_VERSION and version.json together on every deploy — the banner below is how you know you're not looking at a stale cached copy */
-const APP_VERSION = "2026-07-05.9";
+const APP_VERSION = "2026-07-06.1";
 
 try {
   document.getElementById("versionBadge").textContent = "v" + APP_VERSION;
@@ -597,12 +597,16 @@ const LOCATIONS = [
     bad: ["RULED OUT — converted to lodge-only in 2017, no touring pitches left"]
   },
   {
-    id: "wharfedale", name: "Wharfedale CAMC, Threshfield", category: "frontrunner",
+    id: "wharfedale", name: "Wharfedale Club Campsite, Threshfield", category: "frontrunner",
     lat: 54.0759, lon: -2.0186, address: "Threshfield, North Yorkshire",
     video: "https://www.youtube.com/watch?v=tYgsBEnIwWg",
     fromHW: "115mi / 2h24", toBH: "23.3mi / 36min", rating: "4.7★ Google",
     walk: "2.1mi / 45 min walk into Grassington — further than it looks on paper, not a quick stroll.",
-    good: ["Right next to Grassington — the charming independent-shops town from the saved YouTube video, exactly the vibe wanted", "Good reviews (4.7★)", "Short 36-min hop onward to the festival", "Promoted back from ruled-out on 2 Jul 2026 — the town won out over the campsite-photo concern"],
+    defaultBooked: true,
+    bookedNights: 1,
+    bookedDateRange: "15-16 Jul",
+    defaultBookingDetails: "✅ BOOKED — resolves the 3rd pre-festival night (after Dalesbridge's 13th-14th, right before the festival starts 16th).\nBooking ref: U3021058\nBooked 6 Jul 2026\n2 adults, motorhome\nMon 15 Jul – Tue 16 Jul 2026 (1 night)\nTotal: £64.50",
+    good: ["Right next to Grassington — the charming independent-shops town from the saved YouTube video, exactly the vibe wanted", "Good reviews (4.7★)", "Short 36-min hop onward to the festival", "Booked — completes all 3 pre-festival nights (13th-14th Dalesbridge, 15th-16th here)"],
     bad: ["Campsite pitches themselves look like a plainer rows-of-caravans field in photos, not as characterful as Dalesbridge", "Grassington walk is 45 minutes each way, not a quick stroll"]
   },
 
@@ -692,7 +696,8 @@ const ATTRACTIONS = [
    editing a place's defaultBooked/bookedNights/bookedDateRange fields (or toggling it in the UI) updates the itinerary automatically, nothing here needs hand-editing per booking. */
 const ITINERARY = [
   { day: "Mon", date: "13 Jul", plan: "Ferry Douglas → Liverpool, dep 07:15 arr 10:00. Drive ~2h to Hulland Ward to collect \"Eva\", leave own car there. Free from early/mid-afternoon.", festival: false, linkedLocationIds: ["ferry", "hulland-ward"] },
-  { day: "Mon–Wed", date: "13–15 Jul", plan: "Free camping before the festival.", festival: false, linkedLocationIds: ["dalesbridge"], note: "Still need to sort the 3rd night (15th) — Dalesbridge only covers 13th-14th." },
+  { day: "Mon–Tue", date: "13–14 Jul", plan: "Free camping before the festival.", festival: false, linkedLocationIds: ["dalesbridge"] },
+  { day: "Wed–Thu", date: "15–16 Jul", plan: "Free camping before the festival — third and final pre-festival night, right up to the gates opening.", festival: false, linkedLocationIds: ["wharfedale"] },
   { day: "Thu–Sun", date: "16–19 Jul", plan: "Beat-Herder Festival, Dockber Farm, Sawley, Lancashire BB7 4LH.", festival: true, linkedLocationIds: ["beatherder"] },
   { day: "Mon", date: "20 Jul, ~5pm", plan: "Leave festival → Calder Farm, Clitheroe (7 min away).", festival: false, linkedLocationIds: ["calder-farm"] },
   { day: "Mon–Tue", date: "20–21 Jul", plan: "Stay at Calder Farm.", festival: false, linkedLocationIds: ["calder-farm"] },
@@ -705,8 +710,6 @@ const TODOS = [
   { text: "Sort TWO recent proofs of address (dated within last 3 months) to bring for camper collection", urgent: true },
   { text: "Watch the Eva handover video before collection day: youtube.com/shorts/A8VAxL-lGFg", urgent: false },
   { text: "Get Calder Farm cabin number/name and exact checkout time (call 01200 447725)", urgent: false },
-  { text: "Sort the 3rd pre-festival night (15 Jul) — Dalesbridge booked for 13th-14th already", urgent: false },
-  { text: "Decide the one free night after Calder Farm, before the return ferry", urgent: false },
   { text: "Check the Met Office long-range forecast for BB7 nearer the time", urgent: false }
 ];
 
