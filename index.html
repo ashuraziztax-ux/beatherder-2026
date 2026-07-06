@@ -305,11 +305,13 @@
         <button class="btn amber" id="camperToggle" style="width:100%;margin-bottom:10px;">📸 Show full specs &amp; photos ▾</button>
         <div class="status-line"><span class="status-dot good"></span> Hire fee paid in full — £1,690.00</div>
         <p class="fact"><b>Dates:</b> 13–22 July (9 nights), 2 named drivers (Ashur Aziz + Faith Marshall), unlimited UK mileage.</p>
-        <p class="fact"><b>Collection:</b> Hulland Ward, Ashbourne, Derbyshire — exact postcode not yet published; working assumption only.</p>
-        <p class="fact"><b>Contact:</b> Paul Young — <a class="contact" href="tel:07970350561">07970 350561</a> · <a class="contact" href="mailto:04evayoungcamperhire@gmail.com">04evayoungcamperhire@gmail.com</a></p>
+        <p class="fact"><b>Collection:</b> New House Farm, Belper Road, Ashbourne, DE6 1LP — ⚠️ postcode is misleading on satnav, use What3Words <a class="contact" href="https://w3w.co/grunt.lizard.seriously" target="_blank">///grunt.lizard.seriously</a> instead. Look for the roadside "NEW HOUSE FARM" sign, long driveway on the right to the big green gates (not the farmhouse driveway).</p>
+        <p class="fact"><b>Times:</b> Collection 10:30am, return 12:00pm — no later, strictly staggered around other customers.</p>
+        <p class="fact"><b>Contact:</b> Paul — <a class="contact" href="tel:07970350561">07970 350561</a> · Andy — <a class="contact" href="tel:07916703464">07916 703464</a> · Breakdown Assist — <a class="contact" href="tel:01206785880">01206 785880</a></p>
         <div class="warn-box">⚠️ £1,000–£1,250 (age-dependent) refundable damages deposit is SEPARATE from the £1,690 paid and doesn't look arranged yet. Due 5 working days before hire — that's <b>Mon 6 Jul</b> — if paying by bank transfer, or handled as a card pre-authorisation on collection instead.</div>
-        <div class="warn-box">⚠️ Collection-day email with exact address expected ~2 weeks before hire (around 29 Jun) — chase Paul if not received.</div>
-        <div class="warn-box">⚠️ <b>Checkout/return time is 12:00pm</b>, confirmed on the official page — matters for 22 Jul: "Eva" needs to be back at Hulland Ward by noon, before continuing on to Liverpool for the evening ferry.</div>
+        <div class="warn-box">✅ Collection-day email received 5 Jul 2026 — handover video (control panel walkthrough): <a class="contact" href="https://youtube.com/shorts/A8VAxL-lGFg" target="_blank">watch here</a>. Bring TWO recent proofs of address (dated within the last 3 months).</div>
+        <div class="warn-box">⚠️ <b>Checkout/return time is 12:00pm</b> — "Eva" needs to be back at Hulland Ward by noon on 22 Jul, before continuing on to Liverpool for the evening ferry. Text/call when 1 hour away from returning.</div>
+        <div class="warn-box">🚨 £100 deposit deduction risk if returned with: toilet cassette not emptied/cleaned, grey waste not emptied, fuel tank not full, or camper not left clean and tidy. Camper is provided fully fuelled — return fully fuelled (nearest 24/7 station: Prestons Garage, Derby Road, Ashbourne, DE6 1LZ).</div>
         <div id="camperDetail" style="display:none;margin-top:10px;border-top:1px solid var(--line);padding-top:10px;">
           <p class="fact"><b>Confirmed spelling:</b> "Eva" (with an 'a') — checked directly against the official van page.</p>
           <p class="fact"><b>Vehicle:</b> Chausson 720 First Line, 5-berth, automatic gearbox</p>
@@ -408,7 +410,7 @@ window.gmapsLoadFailed = function() {
 <script>
 /* ---------- VERSION & UPDATE CHECK ---------- */
 /* Bump APP_VERSION and version.json together on every deploy — the banner below is how you know you're not looking at a stale cached copy */
-const APP_VERSION = "2026-07-05.8";
+const APP_VERSION = "2026-07-05.9";
 
 try {
   document.getElementById("versionBadge").textContent = "v" + APP_VERSION;
@@ -448,7 +450,8 @@ const LOCATIONS = [
   {
     id: "hulland-ward", name: "Hulland Ward (camper collection)", category: "booking",
     lat: 53.0027, lon: -1.6924,
-    address: "Ashbourne, Derbyshire — exact postcode not yet published",
+    skipGeocode: true, // Paul's email explicitly warns the DE6 1LP postcode geocodes to the WRONG place (their old accountant) — never trust the address string for this pin, use the manual lat/lon + What3Words instead
+    address: "New House Farm, Belper Road, Ashbourne, DE6 1LP",
     website: "https://4evayoungcamperhireltd.co.uk/campervans/eva/",
     manualPhotos: [
       "https://4evayoungcamperhireltd.co.uk/wp-content/uploads/2026/02/WhatsApp-Image-2026-02-10-at-11.51.06.jpeg",
@@ -456,12 +459,22 @@ const LOCATIONS = [
       "https://4evayoungcamperhireltd.co.uk/wp-content/uploads/2026/02/WhatsApp-Image-2026-02-10-at-11.51.09-1.jpeg"
     ],
     facts: [
+      "⚠️ DO NOT rely on the postcode (DE6 1LP) for satnav — Paul's email says it takes you somewhere different. Do NOT Google the address either — it goes to their old accountant.",
+      "✅ Use What3Words for exact navigation: ///grunt.lizard.seriously — https://w3w.co/grunt.lizard.seriously",
+      "On the main road from Belper to Ashbourne — look for the large roadside sign \"NEW HOUSE FARM\". Use the long driveway on the RIGHT leading to the big green gates. Do NOT use the farmhouse driveway.",
+      "⏰ Collection: 10:30am. Return: 12:00pm — no later. Times are staggered around other customers, so call Paul/Andy immediately if running late in either direction.",
+      "📞 Paul: 07970 350561 · Andy: 07916 703464 · Breakdown Assist: 01206 785880",
+      "📄 Bring TWO recent proofs of address (dated within last 3 months) before collection",
       "Collect & return camper van \"Eva\" here (4eva Young Camper Hire) — confirmed spelled with an 'a' on the official site",
-      "Own car left here for the duration",
+      "Own car can be left in their CCTV yard at your own risk — leave the car key too, they may need to move it for storage",
+      "Handover video (control panel walkthrough): https://youtube.com/shorts/A8VAxL-lGFg",
+      "Camper provided fully fuelled — return fully fuelled. Nearest fuel: Main Road, Hulland Ward, Ashbourne, DE6 3EA (closes 2pm Sundays), or Prestons Garage, Derby Road, Ashbourne, DE6 1LZ (24/7)",
+      "🚨 £100 deducted from the security deposit if on return: toilet cassette not emptied/cleaned, grey waste not emptied, tank not full, or camper not left clean and tidy — take all rubbish with you, their bins are not for guest use",
+      "Text/call when ONE HOUR away from returning on 22 Jul — they're not on-site 24/7",
       "Gateway to the Peak District — zero-detour base for both free camping windows"
     ],
-    good: ["Sits right on the doorstep of the Peak District", "Well-placed for both the outbound and return legs"],
-    bad: ["Exact address still not confirmed — working assumption only, awaiting Paul's collection-day email", "£1,000 damages deposit due Mon 6 Jul if paying by bank transfer"],
+    good: ["Sits right on the doorstep of the Peak District", "Well-placed for both the outbound and return legs", "Exact location now confirmed via collection-day email (5 Jul 2026)"],
+    bad: ["Postcode is misleading for satnav — must use What3Words on the day", "Times are strict — late return is chargeable per T&Cs", "£1,000 damages deposit due Mon 6 Jul if paying by bank transfer"],
     walk: null
   },
   {
@@ -688,9 +701,9 @@ const ITINERARY = [
 ];
 
 const TODOS = [
-  { text: "Get exact camper hire collection address/postcode (Hulland Ward) from Paul's collection-day email", urgent: true },
   { text: "Confirm how the £1,000 damages deposit is being paid — bank transfer due Mon 6 Jul, or card pre-auth on collection", urgent: true },
-  { text: "Chase 4eva Young Camper Hire's collection-day email if not received by ~6 Jul", urgent: true },
+  { text: "Sort TWO recent proofs of address (dated within last 3 months) to bring for camper collection", urgent: true },
+  { text: "Watch the Eva handover video before collection day: youtube.com/shorts/A8VAxL-lGFg", urgent: false },
   { text: "Get Calder Farm cabin number/name and exact checkout time (call 01200 447725)", urgent: false },
   { text: "Sort the 3rd pre-festival night (15 Jul) — Dalesbridge booked for 13th-14th already", urgent: false },
   { text: "Decide the one free night after Calder Farm, before the return ferry", urgent: false },
@@ -773,14 +786,7 @@ function initApp() {
 
 /* Resolve every location (including ruled-out ones, so their table links are accurate) but only place a marker for ones shown on the map */
 function geocodeAndPlace(loc) {
-  const query = `${loc.address}, UK`;
-  geocoder.geocode({ address: query }, (results, status) => {
-    let position;
-    if (status === "OK" && results[0]) {
-      position = results[0].geometry.location;
-    } else {
-      position = new google.maps.LatLng(loc.lat, loc.lon);
-    }
+  const finish = (position) => {
     loc.resolvedLatLng = position;
 
     if (loc.category !== "ruledout") {
@@ -800,6 +806,24 @@ function geocodeAndPlace(loc) {
 
     allGeocodedCount++;
     if (allGeocodedCount === LOCATIONS.length) computeFerryDistances();
+  };
+
+  // Some real-world addresses are known to geocode to the wrong place (e.g. the camper collection postcode) —
+  // skipGeocode forces the manually-verified lat/lon instead of trusting Google's address lookup
+  if (loc.skipGeocode) {
+    finish(new google.maps.LatLng(loc.lat, loc.lon));
+    return;
+  }
+
+  const query = `${loc.address}, UK`;
+  geocoder.geocode({ address: query }, (results, status) => {
+    let position;
+    if (status === "OK" && results[0]) {
+      position = results[0].geometry.location;
+    } else {
+      position = new google.maps.LatLng(loc.lat, loc.lon);
+    }
+    finish(position);
   });
 }
 
