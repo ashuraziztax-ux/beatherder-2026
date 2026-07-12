@@ -174,10 +174,8 @@
   /* CAMPSITES TABLE */
   .status-tag { font-size: 10.5px; font-weight: 700; padding: 2px 8px; border-radius: 999px; text-transform: uppercase; }
   .status-tag.frontrunner { background: var(--green-bg); color: var(--green); }
-  .status-tag.considered { background: #fdf1de; color: var(--amber-dark); }
-  .status-tag.ruledout { background: #eee; color: var(--grey); text-decoration: line-through; }
-  .status-tag.maybe { background: #e3f4f8; color: #197c93; }
-  .row-ruledout td, .row-hidden td { opacity: 0.55; }
+  .status-tag.stop { background: #fce7f3; color: #db2777; }
+  .row-hidden td { opacity: 0.55; }
   .row-booked td { background: #f3fbf6; }
 
   /* TODO */
@@ -259,12 +257,11 @@
           <div class="legend">
             <div class="legend-item"><span class="dot" style="background:#2b6cb0"></span> Key booking</div>
             <div class="legend-item"><span class="dot" style="background:#7c3aed"></span> Festival venue</div>
-            <div class="legend-item"><span class="dot" style="background:#15803d"></span> Campsite — front-runner</div>
-            <div class="legend-item"><span class="dot" style="background:#d97706"></span> Campsite — considered</div>
-            <div class="legend-item"><span class="dot" style="background:#0891b2"></span> Lake District (maybe)</div>
+            <div class="legend-item"><span class="dot" style="background:#15803d"></span> Booked campsite</div>
+            <div class="legend-item"><span class="dot" style="background:#db2777"></span> Planned stop</div>
             <div class="legend-item"><span class="dot" style="background:#0d9488"></span> Thing to do (Dalesbridge area)</div>
           </div>
-          <div class="note">Pin locations are geocoded live from each address via the Google Maps Geocoding API — accurate to the real building/area, not an estimate. Ruled-out sites are left off the map (still listed on the Campsites tab for reference).</div>
+          <div class="note">Pin locations are geocoded live from each address via the Google Maps Geocoding API — accurate to the real building/area, not an estimate.</div>
         </div>
       </div>
     </div>
@@ -281,9 +278,8 @@
     </div>
     <div class="card">
       <h2>Free camping windows</h2>
-      <p class="fact"><b>Pre-festival (Mon 13 – Thu 16 Jul):</b> collect the camper same day as the ferry, then free until the festival. ✅ Booked: Dalesbridge Campsite and Cabins for the 13th and 14th (2 nights) — one more night (15th) still to sort.</p>
+      <p class="fact"><b>Pre-festival (Mon 13 – Thu 16 Jul):</b> collect the camper same day as the ferry, then free until the festival. ✅ Fully booked: Dalesbridge Campsite and Cabins (13th-14th), then Wharfedale Club Campsite (15th-16th) — no gaps left before the gates open.</p>
       <p class="fact"><b>Post-festival (Tue 21 Jul):</b> ✅ Booked — Lickpenny (Matlock Club Campsite), 1 night, arriving 13:00–14:00, departing 22 Jul. Closest campsite to Hulland Ward, perfectly positioned for the return drive before the Wed 22 Jul ferry.</p>
-      <p class="fact"><b>Revised recommendation:</b> use the Peak District for both free windows — it sits right on the doorstep of Hulland Ward with zero detour, unlike the Lake District (2h25+ one-way from the actual camper base).</p>
     </div>
   </div>
 
@@ -410,7 +406,7 @@ window.gmapsLoadFailed = function() {
 <script>
 /* ---------- VERSION & UPDATE CHECK ---------- */
 /* Bump APP_VERSION and version.json together on every deploy — the banner below is how you know you're not looking at a stale cached copy */
-const APP_VERSION = "2026-07-06.2";
+const APP_VERSION = "2026-07-06.3";
 
 try {
   document.getElementById("versionBadge").textContent = "v" + APP_VERSION;
@@ -499,12 +495,20 @@ const LOCATIONS = [
   },
 
   {
-    id: "hartington-hills", name: "Hartington Hills", category: "frontrunner",
-    lat: 53.1450, lon: -1.8680, address: "Hulme End, nr Hartington, SK17 0HH",
-    fromHW: "15.1mi / 28min", toBH: "76.2mi / 1h49", rating: "4.8★ Google · 9.8/10 Pitchup · 4.7★ TripAdvisor",
-    walk: "Manifold Inn — 0.8km / 10 min walk across fields. Dovedale stepping stones 15 min drive.",
-    good: ["Closest front-runner to Hulland Ward — shortest first-day drive", "Top-rated across every platform checked", "Proper walkable pub, not a drive", "\"In the middle\" feel — not too farm-like, not too posh", "On-site horsebox bar, 5–7pm"],
-    bad: ["Furthest of the two front-runners from Beat-Herder (1h49)", "Only a bar on site, not a full restaurant"]
+    id: "middlebrook", name: "Middlebrook Retail & Leisure Park, Bolton", category: "stop",
+    lat: 53.5820, lon: -2.5290, address: "The Linkway, Horwich, Bolton, BL6 6JA",
+    facts: [
+      "🗓️ Planned stop: Mon 13 Jul 2026, after collecting \"Eva\" at Hulland Ward",
+      "⏰ Suggested timing: depart Hulland Ward ~11:00-11:15am (after the 10:30am collection) → arrive Middlebrook ~12:30-1:00pm → shop ~1-1.5 hours → depart ~2:00-2:30pm → arrive Dalesbridge (Austwick) mid-late afternoon",
+      "Right off M61 Junction 6 — essentially on the direct route north, not a real detour",
+      "Zara is here, plus H&M, New Look, River Island, Next, Topshop, Footasylum — proper choice of women's clothing brands",
+      "Free open-air surface parking, 3,000+ spaces, no height barriers — fits a big motorhome",
+      "24/7 manned on-site security response centre, CCTV, regular patrols — addressed the \"camper getting stolen\" worry",
+      "No time limit on parking, so no clock-watching while shopping"
+    ],
+    good: ["Barely adds any driving time — nearly on the direct route to the festival", "Proper big retail park, not a random back-street stop", "24/7 security response centre + CCTV — reassuring for leaving a big motorhome unattended"],
+    bad: ["Not confirmed which exact car park bay is best for a large motorhome — pick a spot in the open surface lot, away from tight rows"],
+    walk: null
   },
   {
     id: "dalesbridge", name: "Dalesbridge Campsite and Cabins", category: "frontrunner",
@@ -515,28 +519,12 @@ const LOCATIONS = [
     defaultBooked: true,
     bookedNights: 2,
     bookedDateRange: "13-14 Jul",
-    defaultBookingDetails: "✅ BOOKED — the pre-festival campsite decision, resolved.\nBooking ref: WTB1AB4585\n1× Gravel Hardstanding Electric pitch (shared facilities) — 2 adults\nMon 13 Jul 2026: £31.00\nTue 14 Jul 2026: £31.00\nTotal: £62.00 — paid in full via Stripe, 5 Jul 2026\nCovers the first 2 of the 3 pre-festival free nights — one more night (15 Jul) still to book.",
+    defaultBookingDetails: "✅ BOOKED — the pre-festival campsite decision, resolved.\nBooking ref: WTB1AB4585\n1× Gravel Hardstanding Electric pitch (shared facilities) — 2 adults\nMon 13 Jul 2026: £31.00\nTue 14 Jul 2026: £31.00\nTotal: £62.00 — paid in full via Stripe, 5 Jul 2026\nFirst 2 of 3 pre-festival free nights — Wharfedale Club Campsite covers the 3rd (15-16 Jul).",
     good: ["Best-looking, most characterful campsite found — stone farmhouse, riverside meadow", "On-site bar + wood-fired pizza nights", "Short 30-min hop onward to the festival", "Walkable village pub", "Booked — the pre-festival decision is now resolved"],
     bad: ["Long first-day drive from Hulland Ward — 2h29, over the 2h comfort limit (~4.5h total driving that day)", "Austwick itself is tiny — not a \"browse the shops\" town like Skipton or Hawes"]
   },
   {
-    id: "castleton-camc", name: "Castleton (Losehill) CAMC", category: "considered",
-    lat: 53.3455, lon: -1.7735, address: "Castleton, Derbyshire (Peak District)",
-    fromHW: "30.3mi / 56min", toBH: "63.0mi / 1h31", rating: "4.8★ Google (937 reviews) — highest-rated of the considered group",
-    walk: "Castleton village pubs — within walking distance (exact time not confirmed).",
-    good: ["Pretty castle village setting", "Good pubs nearby", "Safe, motorhome-friendly access"],
-    bad: ["On-site food/bar not checked in detail", "Further from Hulland Ward than Hartington Hills"]
-  },
-  {
-    id: "chatsworth-camc", name: "Chatsworth Park CAMC", category: "considered",
-    lat: 53.2272, lon: -1.6106, address: "Inside the Chatsworth Estate, Derbyshire",
-    fromHW: "21.2mi / 41min", toBH: "72.4mi / 1h45", rating: "4.7★ Google (1,209 reviews)",
-    walk: "Gastropub villages nearby — Beeley, Rowsley, Baslow (short drive, not walkable).",
-    good: ["Inside the Chatsworth Estate — beautiful grounds", "Well-rated, lots of reviews", "Good gastropubs close by"],
-    bad: ["\"A bit posh\" — doesn't match the preference for something in the middle", "Pubs are a drive, not a walk"]
-  },
-  {
-    id: "lickpenny", name: "Lickpenny (Matlock Club Campsite)", category: "considered",
+    id: "lickpenny", name: "Lickpenny (Matlock Club Campsite)", category: "frontrunner",
     lat: 53.1200, lon: -1.5600, address: "Lickpenny Lane, Matlock, Derbyshire, DE4 5PW",
     video: "https://www.youtube.com/watch?v=psCX9KXsZas",
     fromHW: "13.8mi / 28min", toBH: "not checked", rating: "4.6★ Google (716 reviews)",
@@ -547,54 +535,6 @@ const LOCATIONS = [
     defaultBookingDetails: "✅ BOOKED — the post-festival free night.\nBooking ref: U3021074\nBooked 6 Jul 2026\n21 Jul 2026 – 22 Jul 2026 (1 night)\n2 adults, motorhome\nTotal: £59.50\n⚠️ Outstanding balance: £54.50 — still needs paying before arrival.",
     good: ["Closest campsite of any option to Hulland Ward — sets up the return drive perfectly", "Gateway to quirky Matlock Bath", "Booked for exactly the right night — 21 Jul, between Calder Farm and the return ferry"],
     bad: ["£54.50 still outstanding on the booking — pay before arrival", "Distance onward to Beat-Herder not checked (not relevant now — this is the post-festival stop, not pre-festival)"]
-  },
-  {
-    id: "greenhills", name: "Greenhills, Bakewell", category: "considered",
-    lat: 53.2100, lon: -1.6800, address: "nr Bakewell, Derbyshire",
-    fromHW: "not checked", toBH: "not checked", rating: "4.4★ Google (892 reviews)",
-    walk: "5 minutes from Bakewell town centre.",
-    good: ["Very close to Bakewell"],
-    bad: ["Lower-rated than the other Peak District options", "Least researched of the group — distances not checked"]
-  },
-  {
-    id: "niffany-farm", name: "Niffany Farm, Skipton", category: "considered",
-    lat: 53.9650, lon: -2.0100, address: "Edge of Skipton, North Yorkshire",
-    fromHW: "104mi / 2h11", toBH: "13.7mi / 21min — shortest onward hop of any option", rating: "Not checked numerically",
-    walk: "By the Leeds–Liverpool Canal, edge of Skipton town — walking time into the centre not confirmed.",
-    good: ["Shortest hop to the festival of everything considered (21 min)", "Skipton is the biggest \"Gateway to the Dales\" town — castle, canal boats, cobbled high street, lots of independent shops/cafes — closest match to the Grassington appeal"],
-    bad: ["The pitching field itself is a fairly plain grass paddock — not as characterful as Dalesbridge", "Long first-day drive from Hulland Ward (2h11)"]
-  },
-  {
-    id: "bainbridge-ings", name: "Bainbridge Ings, Hawes", category: "considered",
-    lat: 54.3050, lon: -2.1950, address: "Hawes, Wensleydale, North Yorkshire",
-    fromHW: "138mi / 2h39 — furthest option considered", toBH: "38.4mi / 1h07", rating: "9/10 (178 reviews)",
-    walk: "10–15 min walk into Hawes — Wensleydale Creamery tour, ropemakers, Dales Countryside Museum, dog-friendly pubs.",
-    good: ["Most charming individual town attractions of anything considered", "Glamping pods with hot tubs, photos look genuinely charming", "Proper walkable \"little shops and interests\" town"],
-    bad: ["Furthest single drive of everything considered — 2h39 from Hulland Ward"]
-  },
-  {
-    id: "rowter-farm", name: "Rowter Farm, Castleton", category: "ruledout",
-    lat: 53.3410, lon: -1.8180, address: "Winnats Pass, Castleton, Derbyshire",
-    fromHW: "34.5mi / 55min", toBH: "61.4mi / 1h27", rating: "Stunning views",
-    walk: null,
-    good: ["Stunning Winnats Pass views"],
-    bad: ["RULED OUT — access road is a 1:4 gradient, unsuitable for motorhomes/caravans"]
-  },
-  {
-    id: "fieldhead", name: "Fieldhead, Edale", category: "ruledout",
-    lat: 53.3648, lon: -1.8127, address: "Edale, Derbyldshire (Peak District)",
-    fromHW: "not applicable", toBH: "not applicable", rating: "—",
-    walk: null,
-    good: [],
-    bad: ["RULED OUT — tent-only, no vehicles allowed on site at all"]
-  },
-  {
-    id: "rivendale", name: "Rivendale, Alsop-en-le-Dale", category: "ruledout",
-    lat: 53.0866, lon: -1.7671, address: "Alsop-en-le-Dale, Derbyshire",
-    fromHW: "not applicable", toBH: "not applicable", rating: "—",
-    walk: null,
-    good: [],
-    bad: ["RULED OUT — converted to lodge-only in 2017, no touring pitches left"]
   },
   {
     id: "wharfedale", name: "Wharfedale Club Campsite, Threshfield", category: "frontrunner",
@@ -608,66 +548,14 @@ const LOCATIONS = [
     defaultBookingDetails: "✅ BOOKED — resolves the 3rd pre-festival night (after Dalesbridge's 13th-14th, right before the festival starts 16th).\nBooking ref: U3021058\nBooked 6 Jul 2026\n2 adults, motorhome\nMon 15 Jul – Tue 16 Jul 2026 (1 night)\nTotal: £64.50",
     good: ["Right next to Grassington — the charming independent-shops town from the saved YouTube video, exactly the vibe wanted", "Good reviews (4.7★)", "Short 36-min hop onward to the festival", "Booked — completes all 3 pre-festival nights (13th-14th Dalesbridge, 15th-16th here)"],
     bad: ["Campsite pitches themselves look like a plainer rows-of-caravans field in photos, not as characterful as Dalesbridge", "Grassington walk is 45 minutes each way, not a quick stroll"]
-  },
-
-  { id: "kendal", name: "Kendal C&MC, Sedgwick", category: "maybe",
-    lat: 54.2639, lon: -2.7404, address: "Sedgwick, nr Kendal, Cumbria",
-    fromHW: "138mi / 2h25 (from Hulland Ward)", toBH: "35.5mi / 55min (via Calder Farm leg)", rating: "~£20–30/night",
-    walk: "Not confirmed — riverside woodland setting.",
-    good: ["Closest Lakes option to the route, shortest hop each way of the Lakes group", "Peaceful riverside woodland"],
-    bad: ["Least dramatic scenery of the Lakes group", "Still a big detour from the real Hulland Ward base"]
-  },
-  { id: "park-cliffe", name: "Park Cliffe, Windermere", category: "maybe",
-    lat: 54.3110, lon: -2.9130, address: "Windermere, Cumbria",
-    fromHW: "~2h40+ (from Hulland Ward)", toBH: "50.2mi / 1h14", rating: "£28/night",
-    walk: "On-site bar + food truck (Mexican/breakfast) — no need to leave site.",
-    good: ["Award-winning site", "On-site bar and food truck"],
-    bad: ["More lively/family feel than restful", "Big detour from Hulland Ward"]
-  },
-  { id: "low-wray", name: "Low Wray (NT), Windermere", category: "maybe",
-    lat: 54.3961, lon: -2.9767, address: "Ambleside, LA22 0JA",
-    fromHW: "~2h50+ (from Hulland Ward)", toBH: "53.9mi / 1h26", rating: "Pricey, exact rate not published",
-    walk: "Wray Castle (NT) — 15 min walk along the lake.",
-    good: ["Lakeshore setting on Windermere", "Wood-fired pizza on site 3 nights/week"],
-    bad: ["Popular — busy in summer", "Big detour from Hulland Ward"]
-  },
-  { id: "great-langdale", name: "Great Langdale (NT)", category: "maybe",
-    lat: 54.4436, lon: -3.0980, address: "Ambleside, LA22 9JU",
-    fromHW: "~3h00+ (from Hulland Ward)", toBH: "57.9mi / 1h36", rating: "~£20–35/night",
-    walk: "Sticklebarn pub — right on site, a few hundred yards. Stickle Ghyll waterfall 20 min walk.",
-    good: ["Most dramatic scenery of the whole Lakes group", "Genuinely restful, no shop/arcade distractions", "Named \"best all-rounder\" of the Lakes options"],
-    bad: ["Biggest detour of the trip from the real Hulland Ward base"]
-  },
-  { id: "sykeside", name: "Sykeside, Patterdale", category: "maybe",
-    lat: 54.5423, lon: -2.9391, address: "Patterdale, CA11 0NZ",
-    fromHW: "~3h20+ (furthest overall)", toBH: "56.7mi / 1h34", rating: "from £23.70/night",
-    walk: "Brotherswater Inn — right on site.",
-    good: ["Pub literally on site", "Stunning Kirkstone/Brotherswater mountain views"],
-    bad: ["Can get boggy in wet weather", "Furthest overall of everything considered"]
-  },
-  { id: "quiet-site", name: "The Quiet Site, Ullswater", category: "maybe",
-    lat: 54.6011, lon: -2.8747, address: "Watermillock, CA11 0LS",
-    fromHW: "~3h10+ (from Hulland Ward)", toBH: "72.3mi / 1h36", rating: "from £20/night pitch, £40+ pods",
-    walk: "Brackenrigg Inn — 10 min drive (not a walk). Aira Force waterfall 10 min drive.",
-    good: ["Deliberately, designedly peaceful — \"UK's most romantic campsite\"", "Own bar/cafe on site", "Gorgeous Ullswater views"],
-    bad: ["Adult-leaning vibe may not suit everyone", "Pub is a drive, not a walk"]
-  },
-  { id: "castlerigg", name: "Castlerigg Hall, Keswick", category: "maybe",
-    lat: 54.5960, lon: -3.1210, address: "Keswick, CA12 4TE",
-    fromHW: "~3h15+ (from Hulland Ward)", toBH: "66.4mi / 1h43", rating: "5-star, pricey",
-    walk: "15–20 min walk into Keswick — lots of pubs/restaurants. Castlerigg Stone Circle 10 min walk.",
-    good: ["Superb Derwentwater/Skiddaw views", "Walkable into busy, well-supplied Keswick", "Stone circle a short walk away"],
-    bad: ["Pricey", "Keswick can be busy/touristy in July"]
   }
 ];
 
 const CATEGORY_STYLE = {
   booking:     { color: "#2b6cb0", icon: "📍", label: "Key booking" },
   venue:       { color: "#7c3aed", icon: "🎪", label: "Festival venue" },
-  frontrunner: { color: "#15803d", icon: "🏕️", label: "Front-runner" },
-  considered:  { color: "#d97706", icon: "🏕️", label: "Considered" },
-  ruledout:    { color: "#9ca3af", icon: "🚫", label: "Ruled out" },
-  maybe:       { color: "#0891b2", icon: "🏔️", label: "Lake District (maybe)" },
+  frontrunner: { color: "#15803d", icon: "🏕️", label: "Booked campsite" },
+  stop:        { color: "#db2777", icon: "🛍️", label: "Planned stop" },
   attraction:  { color: "#0d9488", icon: "🥾", label: "Thing to do (Dalesbridge area)" }
 };
 
@@ -695,7 +583,8 @@ const ATTRACTIONS = [
 /* Each row's booked/unbooked status and "X nights" wording is computed live from the linked location's data —
    editing a place's defaultBooked/bookedNights/bookedDateRange fields (or toggling it in the UI) updates the itinerary automatically, nothing here needs hand-editing per booking. */
 const ITINERARY = [
-  { day: "Mon", date: "13 Jul", plan: "Ferry Douglas → Liverpool, dep 07:15 arr 10:00. Drive ~2h to Hulland Ward to collect \"Eva\", leave own car there. Free from early/mid-afternoon.", festival: false, linkedLocationIds: ["ferry", "hulland-ward"] },
+  { day: "Mon", date: "13 Jul", plan: "Ferry Douglas → Liverpool, dep 07:15 arr 10:00. Drive ~2h to Hulland Ward to collect \"Eva\", leave own car there.", festival: false, linkedLocationIds: ["ferry", "hulland-ward"] },
+  { day: "Mon", date: "13 Jul, ~11:00am-2:30pm", plan: "Clothes shopping stop on the way to the campsite — depart Hulland Ward ~11:00-11:15am, arrive ~12:30-1:00pm, shop ~1-1.5hrs, back on the road by ~2:00-2:30pm. Barely a detour, right off M61 J6.", festival: false, linkedLocationIds: ["middlebrook"] },
   { day: "Mon–Tue", date: "13–14 Jul", plan: "Free camping before the festival.", festival: false, linkedLocationIds: ["dalesbridge"] },
   { day: "Wed–Thu", date: "15–16 Jul", plan: "Free camping before the festival — third and final pre-festival night, right up to the gates opening.", festival: false, linkedLocationIds: ["wharfedale"] },
   { day: "Thu–Sun", date: "16–19 Jul", plan: "Beat-Herder Festival, Dockber Farm, Sawley, Lancashire BB7 4LH.", festival: true, linkedLocationIds: ["beatherder"] },
@@ -1148,9 +1037,9 @@ function applyRatingFilter() {
     const marker = markerById[loc.id];
     if (!marker) return;
     if (hidden[loc.id]) { marker.setMap(null); return; }
-    // Key bookings (ferry, camper collection, Calder Farm) and the festival itself are fixed reference points,
-    // not campsites being compared — always show them no matter what the rating filter or "only booked" mode is set to.
-    if (loc.category === "booking" || loc.category === "venue") { marker.setMap(map); return; }
+    // Key bookings (ferry, camper collection, Calder Farm), the festival itself, and planned stops (Middlebrook) are
+    // fixed parts of the plan, not campsites being compared — always show them regardless of rating filter or "only booked" mode.
+    if (loc.category === "booking" || loc.category === "venue" || loc.category === "stop") { marker.setMap(map); return; }
     if (onlyShowBooked && !isLocBooked(loc)) { marker.setMap(null); return; }
     const rating = ratings[loc.id] || 0;
     const passesFilter = minRatingFilter === 0 || rating >= minRatingFilter;
@@ -1571,11 +1460,10 @@ function renderCampsiteTable() {
   if (!campBody) return;
   const viewed = getViewedStore();
   campBody.innerHTML = "";
-  LOCATIONS.filter(l => ["frontrunner", "considered", "ruledout", "maybe"].includes(l.category))
+  LOCATIONS.filter(l => l.category === "frontrunner")
     .filter(l => !onlyShowBooked || isLocBooked(l))
     .forEach(loc => {
     const tr = document.createElement("tr");
-    if (loc.category === "ruledout") tr.classList.add("row-ruledout");
     const bookedNow = isLocBooked(loc);
     if (bookedNow) tr.classList.add("row-booked");
     const seenBadge = viewed[loc.id]
