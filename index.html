@@ -413,7 +413,7 @@ window.gmapsLoadFailed = function() {
 <script>
 /* ---------- VERSION & UPDATE CHECK ---------- */
 /* Bump APP_VERSION and version.json together on every deploy — the banner below is how you know you're not looking at a stale cached copy */
-const APP_VERSION = "2026-07-06.4";
+const APP_VERSION = "2026-07-06.5";
 
 try {
   document.getElementById("versionBadge").textContent = "v" + APP_VERSION;
@@ -452,7 +452,7 @@ const LOCATIONS = [
   },
   {
     id: "hulland-ward", name: "Hulland Ward (camper collection)", category: "booking",
-    lat: 53.0027, lon: -1.6924,
+    lat: 53.014783, lon: -1.686334, // exact coords confirmed on-site via What3Words ///grunt.lizard.seriously (6 Jul 2026), replacing the earlier estimate
     skipGeocode: true, // Paul's email explicitly warns the DE6 1LP postcode geocodes to the WRONG place (their old accountant) — never trust the address string for this pin, use the manual lat/lon + What3Words instead
     address: "New House Farm, Belper Road, Ashbourne, DE6 1LP",
     website: "https://4evayoungcamperhireltd.co.uk/campervans/eva/",
