@@ -240,6 +240,12 @@
       </div>
       <div class="note" id="modeNote">Click any pin for full details — distances, walking info, and the good &amp; bad of each place. Toggle "Plan a Route" to instead click pins in order and build up a driving-time total.</div>
       <div class="note" id="lockedRouteInfo" style="font-weight:600;color:var(--purple-dark);margin-top:6px;">🔒 Calculating the fixed ferry ⇄ camper leg…</div>
+      <div class="note" style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+        <span>🔍 Search nearby (e.g. "pharmacy", "petrol station", "supermarket"):</span>
+        <input type="text" id="nearbySearchInput" placeholder="What are you looking for?" style="flex:1;min-width:160px;padding:6px 10px;border:1px solid var(--line);border-radius:6px;font-size:13px;">
+        <button class="btn amber" id="nearbySearchBtn">Search</button>
+      </div>
+      <div id="nearbySearchResults"></div>
       <div class="note" style="margin-top:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
         <span id="ratingFilterLabel">Showing all pins</span>
         <span>— filter by your rating:</span>
@@ -260,6 +266,7 @@
             <div class="legend-item"><span class="dot" style="background:#15803d"></span> Booked campsite</div>
             <div class="legend-item"><span class="dot" style="background:#db2777"></span> Planned stop</div>
             <div class="legend-item"><span class="dot" style="background:#0d9488"></span> Thing to do (Dalesbridge area)</div>
+            <div class="legend-item"><span class="dot" style="background:#ea580c"></span> Added by you (search)</div>
           </div>
           <div class="note">Pin locations are geocoded live from each address via the Google Maps Geocoding API — accurate to the real building/area, not an estimate.</div>
         </div>
@@ -406,7 +413,7 @@ window.gmapsLoadFailed = function() {
 <script>
 /* ---------- VERSION & UPDATE CHECK ---------- */
 /* Bump APP_VERSION and version.json together on every deploy — the banner below is how you know you're not looking at a stale cached copy */
-const APP_VERSION = "2026-07-06.3";
+const APP_VERSION = "2026-07-06.4";
 
 try {
   document.getElementById("versionBadge").textContent = "v" + APP_VERSION;
@@ -556,7 +563,8 @@ const CATEGORY_STYLE = {
   venue:       { color: "#7c3aed", icon: "🎪", label: "Festival venue" },
   frontrunner: { color: "#15803d", icon: "🏕️", label: "Booked campsite" },
   stop:        { color: "#db2777", icon: "🛍️", label: "Planned stop" },
-  attraction:  { color: "#0d9488", icon: "🥾", label: "Thing to do (Dalesbridge area)" }
+  attraction:  { color: "#0d9488", icon: "🥾", label: "Thing to do (Dalesbridge area)" },
+  custom:      { color: "#ea580c", icon: "📌", label: "Added by you" }
 };
 
 /* Things to do near Dalesbridge, sourced from https://www.dalesbridge.co.uk/what-to-do — loaded on demand, not part of the core trip data */
@@ -673,6 +681,10 @@ function initApp() {
   document.getElementById("restoreHidden").addEventListener("click", restoreAllHidden);
   updateHiddenButton();
   document.getElementById("ratingFilterWidget").innerHTML = renderRatingFilterWidget();
+
+  loadCustomPinsFromStorage();
+  document.getElementById("nearbySearchBtn").addEventListener("click", searchNearby);
+  document.getElementById("nearbySearchInput").addEventListener("keydown", (e) => { if (e.key === "Enter") searchNearby(); });
 
   wireRouteControls();
 }
@@ -1037,9 +1049,10 @@ function applyRatingFilter() {
     const marker = markerById[loc.id];
     if (!marker) return;
     if (hidden[loc.id]) { marker.setMap(null); return; }
-    // Key bookings (ferry, camper collection, Calder Farm), the festival itself, and planned stops (Middlebrook) are
-    // fixed parts of the plan, not campsites being compared — always show them regardless of rating filter or "only booked" mode.
-    if (loc.category === "booking" || loc.category === "venue" || loc.category === "stop") { marker.setMap(map); return; }
+    // Key bookings (ferry, camper collection, Calder Farm), the festival itself, planned stops (Middlebrook), and
+    // your own searched-and-added pins are fixed parts of the plan, not campsites being compared — always show them
+    // regardless of rating filter or "only booked" mode.
+    if (loc.category === "booking" || loc.category === "venue" || loc.category === "stop" || loc.category === "custom") { marker.setMap(map); return; }
     if (onlyShowBooked && !isLocBooked(loc)) { marker.setMap(null); return; }
     const rating = ratings[loc.id] || 0;
     const passesFilter = minRatingFilter === 0 || rating >= minRatingFilter;
@@ -1105,6 +1118,113 @@ function toggleAttractions() {
     attractionMarkers.forEach(m => m.setMap(attractionsVisible ? map : null));
     btn.textContent = attractionsVisible ? "🥾 Hide things to do (Dalesbridge area)" : "🥾 Show things to do (Dalesbridge area)";
   }
+}
+
+/* ---------- SEARCH NEARBY & ADD YOUR OWN PINS ---------- */
+/* Lets you search for anything (pharmacy, petrol station, shop...) near whichever pin you're currently
+   looking at (or the map's current view if none selected) without leaving the app, and pin any result you want to keep. */
+
+let searchNearbyRequestId = 0;
+
+function saveCustomPinsToStorage() {
+  const customPins = LOCATIONS.filter(l => l.category === "custom").map(l => ({
+    id: l.id, name: l.name, lat: l.lat, lon: l.lon, address: l.address
+  }));
+  safeStorageSet("beatherder-custom-pins", JSON.stringify(customPins));
+}
+
+function loadCustomPinsFromStorage() {
+  let saved = [];
+  try { saved = JSON.parse(safeStorageGet("beatherder-custom-pins") || "[]"); } catch (e) { saved = []; }
+  saved.forEach(p => {
+    if (LOCATIONS.find(l => l.id === p.id)) return;
+    const loc = { id: p.id, name: p.name, category: "custom", lat: p.lat, lon: p.lon, address: p.address, facts: ["Added by you via nearby search"] };
+    LOCATIONS.push(loc);
+    loc.resolvedLatLng = new google.maps.LatLng(p.lat, p.lon);
+    placeMarker(loc, loc.resolvedLatLng);
+  });
+}
+
+function addCustomPin(place) {
+  const id = "custom-" + (place.place_id || (place.name.replace(/\s+/g, "-").toLowerCase() + "-" + Date.now()));
+  if (LOCATIONS.find(l => l.id === id)) return;
+  const position = place.geometry.location;
+  const loc = {
+    id, name: place.name, category: "custom",
+    lat: position.lat(), lon: position.lng(),
+    address: place.formatted_address || place.vicinity || "",
+    facts: ["Added by you via nearby search", place.rating ? `${place.rating}★ Google (${place.user_ratings_total || 0} reviews)` : null].filter(Boolean)
+  };
+  LOCATIONS.push(loc);
+  loc.resolvedLatLng = position;
+  placeMarker(loc, position);
+  saveCustomPinsToStorage();
+  showDetail(loc);
+}
+
+function searchNearby() {
+  const input = document.getElementById("nearbySearchInput");
+  const resultsEl = document.getElementById("nearbySearchResults");
+  const query = input.value.trim();
+  if (!query) return;
+  resultsEl.innerHTML = `<div class="note" style="margin-top:8px;">Searching…</div>`;
+
+  // Bias the search around whichever pin is currently open, falling back to the map's current view
+  const currentLoc = currentDetailId ? LOCATIONS.find(l => l.id === currentDetailId) : null;
+  const biasCenter = (currentLoc && currentLoc.resolvedLatLng) ? currentLoc.resolvedLatLng : map.getCenter();
+
+  // Places callbacks can occasionally never fire at all (same failure mode as the Geocoder elsewhere in this app) —
+  // never let the results box hang on "Searching…" forever.
+  let answered = false;
+  const searchRequestId = ++searchNearbyRequestId;
+  const safetyTimeout = setTimeout(() => {
+    if (answered || searchRequestId !== searchNearbyRequestId) return;
+    answered = true;
+    resultsEl.innerHTML = `<div class="note" style="margin-top:8px;">Search timed out — try again.</div>`;
+  }, 15000);
+
+  placesService.textSearch({
+    query,
+    location: biasCenter,
+    radius: 16000 // ~10 miles — rural campsite areas need a wider net than a city search
+  }, (results, status) => {
+    if (answered || searchRequestId !== searchNearbyRequestId) return;
+    answered = true;
+    clearTimeout(safetyTimeout);
+    if (status !== "OK" || !results || !results.length) {
+      resultsEl.innerHTML = `<div class="note" style="margin-top:8px;">No results found for "${escapeHtml(query)}" nearby.</div>`;
+      return;
+    }
+    resultsEl.innerHTML = `<div class="note" style="margin-top:8px;font-weight:600;">Results near ${currentLoc ? currentLoc.name : "the current map view"}:</div>` +
+      results.slice(0, 8).map((place, i) => {
+        const distText = window.google.maps.geometry
+          ? `${(google.maps.geometry.spherical.computeDistanceBetween(biasCenter, place.geometry.location) / 1609.34).toFixed(1)} mi away`
+          : "";
+        return `<div class="search-result-row" style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--line);flex-wrap:wrap;">
+          <div style="flex:1;min-width:180px;">
+            <b>${escapeHtml(place.name)}</b>
+            <div style="font-size:12px;color:#8a8378;">${escapeHtml(place.formatted_address || place.vicinity || "")}${distText ? " · " + distText : ""}${place.rating ? ` · ${place.rating}★` : ""}</div>
+          </div>
+          <button class="btn secondary" style="font-size:11.5px;padding:5px 10px;" onclick="focusSearchResult(${i})">📍 Show</button>
+          <button class="btn amber" style="font-size:11.5px;padding:5px 10px;" onclick="addSearchResultPin(${i})">➕ Add pin</button>
+        </div>`;
+      }).join("");
+    window.lastSearchResults = results;
+  });
+}
+
+function focusSearchResult(i) {
+  const place = window.lastSearchResults[i];
+  if (!place) return;
+  map.panTo(place.geometry.location);
+  map.setZoom(14);
+  showMapTooltip(place.name, null);
+  setTimeout(hideMapTooltip, 2500);
+}
+
+function addSearchResultPin(i) {
+  const place = window.lastSearchResults[i];
+  if (place) addCustomPin(place);
 }
 
 function openOnMap(id) {
