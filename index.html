@@ -419,7 +419,7 @@ window.gmapsLoadFailed = function() {
 <script>
 /* ---------- VERSION & UPDATE CHECK ---------- */
 /* Bump APP_VERSION and version.json together on every deploy — the banner below is how you know you're not looking at a stale cached copy */
-const APP_VERSION = "2026-07-06.6";
+const APP_VERSION = "2026-07-06.7";
 
 try {
   document.getElementById("versionBadge").textContent = "v" + APP_VERSION;
@@ -1482,8 +1482,11 @@ function renderRoutePanel() {
         if (line.stay) {
           html += `<div class="route-day-stay">${line.text}</div>`;
         } else {
+          const mapsBtn = (line.originCoord && line.destCoord)
+            ? `<button class="btn secondary" style="font-size:10px;padding:3px 7px;white-space:nowrap;" onclick="openLegInGoogleMaps('${line.originCoord}','${line.destCoord}')">🗺️ Maps</button>`
+            : "";
           const removeBtn = (line.stopIndex !== undefined) ? `<span class="remove" onclick="removeRouteStop(${line.stopIndex})">✕</span>` : "";
-          html += `<div class="route-day-line"><span>${line.text}${line.sub ? `<span class="sub">${line.sub}</span>` : ""}</span>${removeBtn}</div>`;
+          html += `<div class="route-day-line"><span>${line.text}${line.sub ? `<span class="sub">${line.sub}</span>` : ""}</span><span style="display:flex;align-items:center;gap:6px;flex-shrink:0;">${mapsBtn}${removeBtn}</span></div>`;
         }
       });
     });
@@ -1505,10 +1508,16 @@ function openInGoogleMaps() {
   window.open(url, "_blank");
 }
 
+/* Opens just one leg (the last place -> the next place) in real Google Maps, for turn-by-turn on that specific drive */
+function openLegInGoogleMaps(originCoord, destCoord) {
+  window.open(`https://www.google.com/maps/dir/?api=1&origin=${originCoord}&destination=${destCoord}&travelmode=driving`, "_blank");
+}
+
 let routeRequestId = 0;
 
 function calculateRoute() {
   const hw = LOCATIONS.find(l => l.id === "hulland-ward");
+  const ferry = LOCATIONS.find(l => l.id === "ferry");
   if (routeStops.length < 1 || !hw.resolvedLatLng) return;
   const thisRequestId = ++routeRequestId;
 
@@ -1548,7 +1557,9 @@ function calculateRoute() {
     if (lockedLegInfo) {
       getDayRow(0).lines.push({
         text: `🚢 Leave ~${lockedLegInfo.leaveLabel} (ferry arrival) → Arrive ~${lockedLegInfo.arriveLabel} at <b>Hulland Ward</b>`,
-        sub: `${lockedLegInfo.distanceText} · ${lockedLegInfo.durationText}`
+        sub: `${lockedLegInfo.distanceText} · ${lockedLegInfo.durationText}`,
+        originCoord: `${ferry.resolvedLatLng.lat()},${ferry.resolvedLatLng.lng()}`,
+        destCoord: `${hw.resolvedLatLng.lat()},${hw.resolvedLatLng.lng()}`
       });
       getDayRow(0).lines.push({ stay: true, text: `🔧 +1hr collecting "Eva" → depart ~${lockedLegInfo.departLabel}` });
     }
@@ -1563,7 +1574,9 @@ function calculateRoute() {
       getDayRow(leaveDay).lines.push({
         stopIndex: i,
         text: `🕐 Leave ~${minutesToTimeLabel(leaveMin)} (${departureReasonLabel(fromLoc)}) → Arrive ~${minutesToTimeLabel(arriveMin)} at <b>${toLoc.name}</b>`,
-        sub: `${l.distance.text} · ${l.duration.text}`
+        sub: `${l.distance.text} · ${l.duration.text}`,
+        originCoord: `${fromLoc.resolvedLatLng.lat()},${fromLoc.resolvedLatLng.lng()}`,
+        destCoord: `${toLoc.resolvedLatLng.lat()},${toLoc.resolvedLatLng.lng()}`
       });
 
       // Ferry/Hulland Ward can be clicked again to complete a round trip — neither is an overnight stop even
